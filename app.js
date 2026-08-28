@@ -10,20 +10,7 @@ const missionSets = {
   "김학진": ["'지금 뭐 하는 거지?' 싶은 엉뚱한 순간 찍기", "카메라를 전혀 의식하지 않는 자연스러운 단체 순간 찍기", "오늘 가장 웃긴 표정을 한 사람 찍기", "여행지에서 처음 보는 것에 놀란 사람 찍기", "여행의 시작과 끝을 닮은 구도로 한 장씩 찍기"]
 };
 
-const evaluationData = {
-  "서성준": [
-    { author:"이은비", text:"언제나 활발하고 에너지가 넘쳐요. 모두가 힘들어 할 때도 항상 웃고 있어서 보고 있는 사람도 힘이 나요. 모든 운동을 두루두루 잘해서 신기해요. 재미있어요. 시크릿자브종 같아요." },
-    { author:"이다경", text:"체력무한대!!!! 같이있으면 웃기고, 둘이 있으면 진지한 대화도 할줄 아는 사람 최고의 팀장 ㅎㅎ" },
-    { author:"김학진", text:"높은 텐션의 소유자. 누구와 있어도 어색할 것 같지가 않은 친화력이 있음. 그래도 진지해야 할 때는 진지하고, 주변 사람들을 잘 챙기는 세심함이 있음. 가끔 감당이 안될 정도로 텐션이 올라감" },
-    { author:"최민규", text:"" }, { author:"한은혜", text:"" }, { author:"은태경", text:"" }
-  ]
-};
-
-members.forEach(subject => {
-  if (!evaluationData[subject]) {
-    evaluationData[subject] = members.filter(author => author !== subject).map(author => ({ author, text:"" }));
-  }
-});
+const evaluationData = window.EVALUATION_DATA;
 
 const db = window.supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
 const memberEmails = { "서성준":"seongjun@jeja-travel.com", "최민규":"minkyu@jeja-travel.com", "한은혜":"eunhye@jeja-travel.com", "이다경":"dagyeong@jeja-travel.com", "김학진":"hakjin@jeja-travel.com", "은태경":"taegyeong@jeja-travel.com", "이은비":"eunbi@jeja-travel.com" };
