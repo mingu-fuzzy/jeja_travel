@@ -465,7 +465,7 @@ document.getElementById("openGalleryButton").addEventListener("click", async () 
   const question = open ? "모두의 사진첩을 다시 비공개하시겠습니까?" : "모든 멤버에게 모두의 사진첩을 공개하시겠습니까?";
   if (!confirm(question)) return;
   const { error } = await db.from("app_settings").update({ gallery_open:!open, updated_at:new Date().toISOString() }).eq("id",1);
-  if (error) { notify("사진첩 공개 상태를 변경하지 못했습니다."); return; }
+  if (error) { notify(`사진첩 공개 상태를 변경하지 못했습니다: ${error.message}`); return; }
   state.settings.gallery_open = !open;
   renderAdmin();
   notify(open ? "모두의 사진첩이 다시 비공개되었습니다." : "모두의 사진첩이 공개되었습니다.");
