@@ -1,5 +1,7 @@
 alter table public.app_settings
   add column if not exists gallery_open boolean not null default false;
+alter table public.app_settings
+  add column if not exists qt_open boolean not null default false;
 
 update public.profiles
 set role = 'admin'
@@ -38,7 +40,7 @@ using (
   )
 );
 
-select id, missions_open, gallery_open, quiz_open, quiz_results_open
+select id, missions_open, gallery_open, qt_open, quiz_open, quiz_results_open
 from public.app_settings;
 
 select name, role

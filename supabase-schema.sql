@@ -9,10 +9,11 @@ create table if not exists public.profiles (
 );
 create table if not exists public.app_settings (
   id smallint primary key default 1 check (id = 1), missions_open boolean not null default false,
-  gallery_open boolean not null default false, quiz_open boolean not null default false, quiz_results_open boolean not null default false,
+  gallery_open boolean not null default false, qt_open boolean not null default false, quiz_open boolean not null default false, quiz_results_open boolean not null default false,
   updated_at timestamptz not null default now()
 );
 alter table public.app_settings add column if not exists gallery_open boolean not null default false;
+alter table public.app_settings add column if not exists qt_open boolean not null default false;
 insert into public.app_settings (id) values (1) on conflict (id) do nothing;
 create table if not exists public.mission_photos (
   id bigint generated always as identity primary key, user_id uuid not null references public.profiles(id) on delete cascade,

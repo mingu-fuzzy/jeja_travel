@@ -27,7 +27,7 @@ members.forEach(subject => {
 
 const db = window.supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
 const memberEmails = { "서성준":"seongjun@jeja-travel.com", "최민규":"minkyu@jeja-travel.com", "한은혜":"eunhye@jeja-travel.com", "이다경":"dagyeong@jeja-travel.com", "김학진":"hakjin@jeja-travel.com", "은태경":"taegyeong@jeja-travel.com", "이은비":"eunbi@jeja-travel.com" };
-const state = { member:"", user:null, profile:null, photos:{}, photoPaths:{}, completedAt:{}, settings:{missions_open:false,gallery_open:false,quiz_open:false,quiz_results_open:false}, groupProgress:{}, quizResults:{} };
+const state = { member:"", user:null, profile:null, photos:{}, photoPaths:{}, completedAt:{}, settings:{missions_open:false,gallery_open:false,qt_open:false,quiz_open:false,quiz_results_open:false}, groupProgress:{}, quizResults:{} };
 const views = [...document.querySelectorAll(".view")];
 const topbar = document.getElementById("topbar");
 const select = document.getElementById("memberSelect");
@@ -43,6 +43,7 @@ const adminEntry = document.getElementById("adminEntry");
 const adminMemberSelect = document.getElementById("adminMemberSelect");
 const missionEntry = document.getElementById("missionEntry");
 const galleryEntry = document.getElementById("galleryEntry");
+const qtEntry = document.getElementById("qtEntry");
 const quizEntry = document.querySelector(".quiz-entry");
 let quizSubject = "";
 let resultSubject = members[0];
@@ -70,6 +71,7 @@ document.addEventListener("change", event => {
 
 function missionsAreOpen() { return state.settings.missions_open; }
 function galleryIsOpen() { return state.settings.gallery_open; }
+function qtIsOpen() { return state.settings.qt_open; }
 function quizIsOpen() { return state.settings.quiz_open; }
 function quizResultsAreOpen() { return state.settings.quiz_results_open; }
 function missionsReceived() { return Boolean(state.profile?.missions_received); }
@@ -156,6 +158,9 @@ function showView(id) {
   if (id === "galleryView" && !galleryIsOpen()) {
     notify("관리자가 공개하기 전에는 모두의 사진첩에 접근할 수 없습니다."); id = "dashboardView";
   }
+  if (id === "qtView" && !qtIsOpen()) {
+    notify("관리자가 공개하기 전에는 오늘의 QT에 접근할 수 없습니다."); id = "dashboardView";
+  }
   if (id === "quizView" && !quizIsOpen() && !quizResultsAreOpen()) {
     notify("관리자가 공개하기 전에는 작성자 맞히기에 접근할 수 없습니다."); id = "dashboardView";
   }
@@ -186,6 +191,10 @@ function renderDashboard() {
   galleryEntry.classList.toggle("locked", !galleryOpen);
   galleryEntry.setAttribute("aria-disabled", String(!galleryOpen));
   document.getElementById("galleryEntryCopy").textContent = galleryOpen ? "모두가 포착한 순간을 모읍니다" : "관리자가 공개하면 확인할 수 있습니다";
+  const qtOpen = qtIsOpen();
+  qtEntry.classList.toggle("locked", !qtOpen);
+  qtEntry.setAttribute("aria-disabled", String(!qtOpen));
+  qtEntry.querySelector("small").textContent = qtOpen ? "시편 100편 1~5절" : "관리자가 공개하면 확인할 수 있습니다";
   const quizOpen = quizIsOpen();
   const quizAvailable = quizOpen || quizResultsAreOpen();
   quizEntry.classList.toggle("locked", !quizAvailable);
@@ -222,6 +231,16 @@ function renderAdmin() {
     ? "모든 멤버가 모두의 사진첩에서 전체 미션 사진을 확인할 수 있습니다."
     : "현재 모든 멤버가 모두의 사진첩에 접근할 수 없습니다.";
   galleryButton.firstChild.textContent = galleryOpen ? "모두의 사진첩 다시 비공개 " : "모두의 사진첩 공개 ";
+
+  const qtOpen = qtIsOpen();
+  const qtControl = document.getElementById("qtControl");
+  const qtButton = document.getElementById("openQtButton");
+  qtControl.classList.toggle("open", qtOpen);
+  document.getElementById("qtAccessBadge").textContent = qtOpen ? "공개됨" : "비공개";
+  document.getElementById("qtControlCopy").textContent = qtOpen
+    ? "모든 멤버가 오늘의 QT에 접근할 수 있습니다."
+    : "현재 모든 멤버가 오늘의 QT에 접근할 수 없습니다.";
+  qtButton.firstChild.textContent = qtOpen ? "오늘의 QT 다시 비공개 " : "오늘의 QT 공개 ";
 
   const quizOpen = quizIsOpen();
   const quizControl = document.getElementById("quizControl");
@@ -484,6 +503,18 @@ document.getElementById("openGalleryButton").addEventListener("click", async () 
   state.settings.gallery_open = !open;
   renderAdmin();
   notify(open ? "모두의 사진첩이 다시 비공개되었습니다." : "모두의 사진첩이 공개되었습니다.");
+});
+
+document.getElementById("openQtButton").addEventListener("click", async () => {
+  if (state.member !== "최민규") return;
+  const open = qtIsOpen();
+  const question = open ? "오늘의 QT를 다시 비공개하시겠습니까?" : "모든 멤버에게 오늘의 QT를 공개하시겠습니까?";
+  if (!confirm(question)) return;
+  const { error } = await db.from("app_settings").update({ qt_open:!open, updated_at:new Date().toISOString() }).eq("id",1);
+  if (error) { notify(`QT 공개 상태를 변경하지 못했습니다: ${error.message}`); return; }
+  state.settings.qt_open = !open;
+  renderAdmin();
+  notify(open ? "오늘의 QT가 다시 비공개되었습니다." : "오늘의 QT가 공개되었습니다.");
 });
 
 document.getElementById("openQuizButton").addEventListener("click", async () => {

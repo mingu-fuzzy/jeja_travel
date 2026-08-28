@@ -78,7 +78,7 @@
             <span class="action-number">02</span><span class="action-icon">▧</span>
             <strong>모두의 사진첩</strong><small id="galleryEntryCopy">관리자가 공개하면 확인할 수 있습니다</small>
           </button>
-          <button class="action-card qt-entry" data-target="qtView" type="button">
+          <button class="action-card qt-entry" id="qtEntry" data-target="qtView" type="button">
             <span class="action-number">03</span><span class="action-icon">♧</span>
             <strong>오늘의 QT</strong><small>시편 100편 1~5절</small>
           </button>
@@ -133,7 +133,7 @@
       <section class="view content-view" id="qtView">
         <button class="back-button" data-target="dashboardView" type="button">← 홈으로</button>
         <p class="eyebrow">오늘의 QT</p>
-        <h2>감사의 시</h2>
+        <h2>오늘의 QT</h2>
         <p class="qt-reference">시편 100편 1~5절</p>
         <div class="scripture-card">
           <p><b>1</b><span>온 땅이여 여호와께 즐거운 찬송을 부를지어다</span></p>
@@ -186,6 +186,16 @@
           <button class="primary-button" id="openGalleryButton" type="button">모두의 사진첩 공개 <span>→</span></button>
         </section>
 
+        <section class="mission-control" id="qtControl" aria-labelledby="qtControlTitle">
+          <div class="mission-control-head">
+            <span>QT CONTROL</span>
+            <b id="qtAccessBadge">비공개</b>
+          </div>
+          <h3 id="qtControlTitle">오늘의 QT 공개</h3>
+          <p id="qtControlCopy">현재 모든 멤버가 오늘의 QT에 접근할 수 없습니다.</p>
+          <button class="primary-button" id="openQtButton" type="button">오늘의 QT 공개 <span>→</span></button>
+        </section>
+
         <section class="mission-control" id="quizControl" aria-labelledby="quizControlTitle">
           <div class="mission-control-head">
             <span>QUIZ CONTROL</span>
@@ -236,6 +246,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js?v=20260828-2"></script>
-  <script src="app.js?v=20260828-5"></script>
+  <script src="app.js?v=20260828-6"></script>
 </body>
 </html>
