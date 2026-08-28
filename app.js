@@ -364,11 +364,19 @@ async function renderGallery() {
   if (!members.includes(gallerySubject)) gallerySubject = state.member;
   grid.classList.remove("hidden"); empty.classList.add("hidden");
   grid.innerHTML = `<div class="quiz-blank" aria-label="사진을 불러오는 중"></div>`;
-  const { data, error } = await db.from("mission_photos").select("id,mission_index,storage_path,completed_at,profiles(name)").order("completed_at",{ascending:true});
-  if (error) { grid.innerHTML = ""; empty.classList.remove("hidden"); notify("사진첩을 불러오지 못했습니다."); return; }
+  const [{ data, error }, { data:galleryProfiles, error:profilesError }] = await Promise.all([
+    db.from("mission_photos").select("id,user_id,mission_index,storage_path,completed_at").order("completed_at",{ascending:true}),
+    db.from("profiles").select("id,name")
+  ]);
+  if (error || profilesError) {
+    grid.innerHTML = ""; empty.classList.remove("hidden");
+    notify(`사진첩을 불러오지 못했습니다: ${(error || profilesError).message}`);
+    return;
+  }
+  const profileNames = Object.fromEntries((galleryProfiles || []).map(profile => [profile.id, profile.name]));
   const entries = await Promise.all((data || []).map(async row => {
     const { data:signed } = await db.storage.from("mission-photos").createSignedUrl(row.storage_path,3600);
-    return { ...row, name:row.profiles?.name, photo:signed?.signedUrl || "" };
+    return { ...row, name:profileNames[row.user_id], photo:signed?.signedUrl || "" };
   }));
   state.galleryEntries = entries;
   const { data:likes, error:likesError } = await db.from("photo_likes").select("photo_id,user_id");
