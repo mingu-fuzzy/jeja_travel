@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f1e8">
+  <meta name="description" content="일곱 친구의 국내 당일치기 비밀 포토 미션">
+  <title>우리들의 여행 포토 미션</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar hidden" id="topbar">
+      <button class="brand-button" id="homeButton" type="button" aria-label="홈으로 이동">
+        <span>제자교회 총무팀</span>
+      </button>
+      <button class="text-button" id="logoutButton" type="button">로그아웃</button>
+    </header>
+
+    <main>
+      <section class="view login-view active" id="loginView">
+        <div class="sun" aria-hidden="true"></div>
+        <div class="login-copy">
+          <p class="eyebrow">ONE DAY TRIP · PHOTO MISSION</p>
+          <h1>우리들의 여행을<br><em>몰래</em> 기록하기</h1>
+          <p class="intro">당신에게만 보이는 5개의 비밀 미션입니다.<br>친구들이 눈치채기 전에 순간을 포착합니다.</p>
+        </div>
+
+        <form class="login-card" id="loginForm">
+          <label for="memberSelect">나는 누구인가요?</label>
+          <div class="select-wrap">
+            <select id="memberSelect" required>
+              <option value="">이름을 선택합니다</option>
+            </select>
+          </div>
+          <div class="password-fields hidden" id="passwordFields">
+            <div class="password-heading">
+              <strong id="passwordTitle">비밀번호 설정</strong>
+              <span id="passwordGuide">처음 사용할 비밀번호를 설정합니다.</span>
+            </div>
+            <label class="sr-only" for="passwordInput">비밀번호</label>
+            <input class="password-input" id="passwordInput" type="password" minlength="4" maxlength="30" autocomplete="current-password" placeholder="비밀번호 (4자 이상)">
+            <div id="confirmField">
+              <label class="sr-only" for="passwordConfirm">비밀번호 확인</label>
+              <input class="password-input" id="passwordConfirm" type="password" minlength="4" maxlength="30" autocomplete="new-password" placeholder="비밀번호 한 번 더 입력">
+            </div>
+            <p class="form-error" id="loginError" role="alert"></p>
+          </div>
+          <button class="primary-button" id="loginButton" type="submit" disabled>이름을 먼저 선택합니다 <span>→</span></button>
+          <p class="microcopy">비밀번호는 이 기기에 안전하게 변환하여 저장됩니다.</p>
+        </form>
+        <p class="login-footer">SEVEN FRIENDS · ONE CAMERA ROLL · COUNTLESS MEMORIES</p>
+      </section>
+
+      <section class="view dashboard-view" id="dashboardView">
+        <div class="hero-card">
+          <p class="eyebrow">WELCOME!</p>
+          <h2><span id="welcomeName"></span>님</h2>
+          <p class="progress-title">나의 미션 진행도</p>
+          <div class="progress-line"><span id="progressBar"></span></div>
+          <div class="progress-copy"><strong id="progressCount">0 / 5</strong><span>미션 완료</span></div>
+        </div>
+
+        <section class="group-progress-card" aria-labelledby="groupProgressTitle">
+          <div class="group-progress-heading">
+            <div><p class="eyebrow">GROUP PROGRESS</p><h3 id="groupProgressTitle">친구들의 진행도</h3></div>
+            <span>총 35개 미션</span>
+          </div>
+          <div class="member-progress-list" id="memberProgressList"></div>
+        </section>
+
+        <div class="action-grid">
+          <button class="action-card coral" id="missionEntry" data-target="missionsView" type="button">
+            <span class="action-number">01</span><span class="action-icon">◎</span>
+            <strong>내 비밀 미션</strong><small id="missionEntryCopy">관리자가 공개하면 확인할 수 있습니다</small>
+          </button>
+          <button class="action-card blue" id="galleryEntry" data-target="galleryView" type="button">
+            <span class="action-number">02</span><span class="action-icon">▧</span>
+            <strong>나의 사진첩</strong><small id="galleryEntryCopy">관리자가 공개하면 확인할 수 있습니다</small>
+          </button>
+          <button class="action-card yellow quiz-entry" data-target="quizView" type="button">
+            <span class="action-number">03</span><span class="action-icon">?</span>
+            <strong>작성자 맞히기</strong><small id="quizEntryCopy">관리자가 공개하면 확인할 수 있습니다</small>
+          </button>
+        </div>
+
+        <button class="admin-entry hidden" id="adminEntry" data-target="adminView" type="button">
+          <span><b>ADMIN</b><strong>관리자 페이지</strong></span><span>→</span>
+        </button>
+
+        <article class="rule-card">
+          <span>오늘의 규칙</span>
+          <p>미션 대상에게 들켜도 괜찮지만, 미션 내용은 여행이 끝날 때까지 비밀!</p>
+        </article>
+      </section>
+
+      <section class="view content-view" id="missionsView">
+        <button class="back-button" data-target="dashboardView" type="button">← 홈으로</button>
+        <div class="mission-receive" id="missionReceive">
+          <div class="draw-mark" aria-hidden="true">?</div>
+          <button class="primary-button receive-button" id="receiveMissionsButton" type="button">미션 수령하기 <span>→</span></button>
+        </div>
+        <div class="mission-drawing hidden" id="missionDrawing" role="status" aria-live="polite">
+          <div class="draw-spinner" aria-hidden="true"></div>
+          <strong>랜덤하게 미션을 뽑는 중입니다.</strong>
+          <span>잠시만 기다려 주십시오.</span>
+        </div>
+        <div class="hidden" id="missionResults">
+          <p class="eyebrow">YOUR SECRET MISSIONS</p>
+          <h2>오늘 포착할<br>다섯 가지 순간</h2>
+          <p class="section-copy">사진을 첨부하면 자동으로 완료 처리됩니다.</p>
+          <div class="mission-list" id="missionList"></div>
+        </div>
+      </section>
+
+      <section class="view content-view" id="galleryView">
+        <button class="back-button" data-target="dashboardView" type="button">← 홈으로</button>
+        <p class="eyebrow">MY CAMERA ROLL</p>
+        <h2>오늘의<br>여행 아카이브</h2>
+        <p class="section-copy">이 기기에 저장된 나의 미션 사진이에요.</p>
+        <div class="gallery-grid" id="galleryGrid"></div>
+        <div class="empty-state" id="emptyGallery">
+          <span>□</span><strong>아직 사진이 없습니다</strong>
+          <p>미션 카드에서 첫 순간을 기록합니다.</p>
+          <button class="secondary-button" data-target="missionsView" type="button">미션 보러 가기</button>
+        </div>
+      </section>
+
+      <section class="view content-view" id="adminView">
+        <button class="back-button" data-target="dashboardView" type="button">← 홈으로</button>
+        <p class="eyebrow">ADMIN ONLY</p>
+        <h2>비밀번호<br>관리</h2>
+        <p class="section-copy">멤버를 선택한 후 새로운 비밀번호를 설정합니다.</p>
+
+        <form class="admin-form" id="adminPasswordForm">
+          <div class="admin-badge"><span>관리자</span><strong>최민규</strong></div>
+          <label for="adminMemberSelect">비밀번호를 변경할 멤버</label>
+          <div class="select-wrap">
+            <select id="adminMemberSelect" required>
+              <option value="">멤버를 선택합니다</option>
+            </select>
+          </div>
+          <label for="adminNewPassword">새 비밀번호</label>
+          <input class="password-input" id="adminNewPassword" type="password" minlength="4" maxlength="30" autocomplete="new-password" placeholder="새 비밀번호 (4자 이상)" required>
+          <label for="adminPasswordConfirm">새 비밀번호 확인</label>
+          <input class="password-input" id="adminPasswordConfirm" type="password" minlength="4" maxlength="30" autocomplete="new-password" placeholder="새 비밀번호 한 번 더 입력" required>
+          <p class="form-error" id="adminError" role="alert"></p>
+          <button class="primary-button" type="submit">비밀번호 변경 <span>→</span></button>
+        </form>
+
+        <section class="mission-control" id="missionControl" aria-labelledby="missionControlTitle">
+          <div class="mission-control-head">
+            <span>MISSION CONTROL</span>
+            <b id="missionAccessBadge">비공개</b>
+          </div>
+          <h3 id="missionControlTitle">미션 및 사진첩 공개</h3>
+          <p id="missionControlCopy">현재 모든 멤버가 비밀 미션과 사진첩에 접근할 수 없습니다.</p>
+          <button class="primary-button" id="openMissionsButton" type="button">전체 공개 <span>→</span></button>
+        </section>
+
+        <section class="mission-control" id="quizControl" aria-labelledby="quizControlTitle">
+          <div class="mission-control-head">
+            <span>QUIZ CONTROL</span>
+            <b id="quizAccessBadge">비공개</b>
+          </div>
+          <h3 id="quizControlTitle">작성자 맞히기 공개</h3>
+          <p id="quizControlCopy">현재 모든 멤버가 작성자 맞히기 페이지에 접근할 수 없습니다.</p>
+          <button class="primary-button" id="openQuizButton" type="button">작성자 맞히기 공개 <span>→</span></button>
+        </section>
+
+        <section class="mission-control" id="quizResultsControl" aria-labelledby="quizResultsControlTitle">
+          <div class="mission-control-head">
+            <span>RESULT CONTROL</span>
+            <b id="quizResultsAccessBadge">비공개</b>
+          </div>
+          <h3 id="quizResultsControlTitle">전체 채점 결과 공개</h3>
+          <p id="quizResultsControlCopy">현재 멤버별 점수와 채점 결과가 공개되지 않았습니다.</p>
+          <button class="primary-button" id="openQuizResultsButton" type="button">전체 결과 공개 <span>→</span></button>
+        </section>
+      </section>
+
+      <section class="view content-view" id="quizView">
+        <button class="back-button" data-target="dashboardView" type="button">← 홈으로</button>
+        <p class="eyebrow">WHO WROTE THIS?</p>
+        <h2>작성자<br>맞히기</h2>
+        <p class="section-copy">친구에 대한 설명을 읽고 누가 작성했는지 선택합니다.</p>
+
+        <div class="quiz-subject" id="quizSubjectCard">
+          <span>ABOUT</span>
+          <h3><b id="quizSubjectName"></b>은(는) 어떤 사람입니까?</h3>
+          <p><strong id="quizAvailableCount">0</strong>개의 설명이 준비되었습니다.</p>
+        </div>
+        <form id="quizForm">
+          <div class="quiz-question-list" id="quizQuestionList"></div>
+          <button class="primary-button quiz-submit" id="quizSubmitButton" type="submit">답안 제출 <span>→</span></button>
+        </form>
+        <div class="quiz-result hidden" id="quizResult" role="status" aria-live="polite"></div>
+        <section class="group-results hidden" id="groupQuizResults">
+          <p class="eyebrow">ALL RESULTS</p>
+          <h3>전체 채점 결과</h3>
+          <div class="result-person-tabs" id="resultPersonTabs" aria-label="결과 대상 선택"></div>
+          <div id="groupResultDetail"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
