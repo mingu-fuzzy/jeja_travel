@@ -9,9 +9,10 @@ create table if not exists public.profiles (
 );
 create table if not exists public.app_settings (
   id smallint primary key default 1 check (id = 1), missions_open boolean not null default false,
-  quiz_open boolean not null default false, quiz_results_open boolean not null default false,
+  gallery_open boolean not null default false, quiz_open boolean not null default false, quiz_results_open boolean not null default false,
   updated_at timestamptz not null default now()
 );
+alter table public.app_settings add column if not exists gallery_open boolean not null default false;
 insert into public.app_settings (id) values (1) on conflict (id) do nothing;
 create table if not exists public.mission_photos (
   id bigint generated always as identity primary key, user_id uuid not null references public.profiles(id) on delete cascade,
@@ -67,7 +68,7 @@ create policy settings_read on public.app_settings for select to authenticated u
 drop policy if exists settings_admin_update on public.app_settings;
 create policy settings_admin_update on public.app_settings for update to authenticated using(public.is_admin()) with check(public.is_admin());
 drop policy if exists photos_read on public.mission_photos;
-create policy photos_read on public.mission_photos for select to authenticated using(user_id=auth.uid() or public.is_admin());
+create policy photos_read on public.mission_photos for select to authenticated using(user_id=auth.uid() or public.is_admin() or (select gallery_open from public.app_settings where id=1));
 drop policy if exists photos_insert on public.mission_photos;
 create policy photos_insert on public.mission_photos for insert to authenticated with check(user_id=auth.uid());
 drop policy if exists photos_update on public.mission_photos;
@@ -86,7 +87,7 @@ create policy storage_photo_insert on storage.objects for insert to authenticate
 drop policy if exists storage_photo_update on storage.objects;
 create policy storage_photo_update on storage.objects for update to authenticated using(bucket_id='mission-photos' and (storage.foldername(name))[1]=auth.uid()::text);
 drop policy if exists storage_photo_read on storage.objects;
-create policy storage_photo_read on storage.objects for select to authenticated using(bucket_id='mission-photos' and ((storage.foldername(name))[1]=auth.uid()::text or public.is_admin()));
+create policy storage_photo_read on storage.objects for select to authenticated using(bucket_id='mission-photos' and ((storage.foldername(name))[1]=auth.uid()::text or public.is_admin() or (select gallery_open from public.app_settings where id=1)));
 drop policy if exists storage_photo_delete on storage.objects;
 create policy storage_photo_delete on storage.objects for delete to authenticated using(bucket_id='mission-photos' and (storage.foldername(name))[1]=auth.uid()::text);
 grant execute on function public.group_progress() to authenticated;

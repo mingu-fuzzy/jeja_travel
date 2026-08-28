@@ -76,7 +76,7 @@
           </button>
           <button class="action-card blue" id="galleryEntry" data-target="galleryView" type="button">
             <span class="action-number">02</span><span class="action-icon">▧</span>
-            <strong>나의 사진첩</strong><small id="galleryEntryCopy">관리자가 공개하면 확인할 수 있습니다</small>
+            <strong>모두의 사진첩</strong><small id="galleryEntryCopy">관리자가 공개하면 확인할 수 있습니다</small>
           </button>
           <button class="action-card yellow quiz-entry" data-target="quizView" type="button">
             <span class="action-number">03</span><span class="action-icon">?</span>
@@ -115,9 +115,9 @@
 
       <section class="view content-view" id="galleryView">
         <button class="back-button" data-target="dashboardView" type="button">← 홈으로</button>
-        <p class="eyebrow">MY CAMERA ROLL</p>
+        <p class="eyebrow">OUR CAMERA ROLL</p>
         <h2>오늘의<br>여행 아카이브</h2>
-        <p class="section-copy">이 기기에 저장된 나의 미션 사진이에요.</p>
+        <p class="section-copy">우리 모두가 기록한 미션 사진을 한곳에서 확인합니다.</p>
         <div class="gallery-grid" id="galleryGrid"></div>
         <div class="empty-state" id="emptyGallery">
           <span>□</span><strong>아직 사진이 없습니다</strong>
@@ -153,9 +153,19 @@
             <span>MISSION CONTROL</span>
             <b id="missionAccessBadge">비공개</b>
           </div>
-          <h3 id="missionControlTitle">미션 및 사진첩 공개</h3>
-          <p id="missionControlCopy">현재 모든 멤버가 비밀 미션과 사진첩에 접근할 수 없습니다.</p>
+          <h3 id="missionControlTitle">비밀 미션 공개</h3>
+          <p id="missionControlCopy">현재 모든 멤버가 비밀 미션에 접근할 수 없습니다.</p>
           <button class="primary-button" id="openMissionsButton" type="button">전체 공개 <span>→</span></button>
+        </section>
+
+        <section class="mission-control" id="galleryControl" aria-labelledby="galleryControlTitle">
+          <div class="mission-control-head">
+            <span>GALLERY CONTROL</span>
+            <b id="galleryAccessBadge">비공개</b>
+          </div>
+          <h3 id="galleryControlTitle">모두의 사진첩 공개</h3>
+          <p id="galleryControlCopy">현재 모든 멤버가 모두의 사진첩에 접근할 수 없습니다.</p>
+          <button class="primary-button" id="openGalleryButton" type="button">모두의 사진첩 공개 <span>→</span></button>
         </section>
 
         <section class="mission-control" id="quizControl" aria-labelledby="quizControlTitle">
@@ -208,6 +218,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js?v=20260828-2"></script>
-  <script src="app.js?v=20260828-2"></script>
+  <script src="app.js?v=20260828-3"></script>
 </body>
 </html>

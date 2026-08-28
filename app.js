@@ -27,7 +27,7 @@ members.forEach(subject => {
 
 const db = window.supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
 const memberEmails = { "서성준":"seongjun@jeja-travel.com", "최민규":"minkyu@jeja-travel.com", "한은혜":"eunhye@jeja-travel.com", "이다경":"dagyeong@jeja-travel.com", "김학진":"hakjin@jeja-travel.com", "은태경":"taegyeong@jeja-travel.com", "이은비":"eunbi@jeja-travel.com" };
-const state = { member:"", user:null, profile:null, photos:{}, photoPaths:{}, completedAt:{}, settings:{missions_open:false,quiz_open:false,quiz_results_open:false}, groupProgress:{}, quizResults:{} };
+const state = { member:"", user:null, profile:null, photos:{}, photoPaths:{}, completedAt:{}, settings:{missions_open:false,gallery_open:false,quiz_open:false,quiz_results_open:false}, groupProgress:{}, quizResults:{} };
 const views = [...document.querySelectorAll(".view")];
 const topbar = document.getElementById("topbar");
 const select = document.getElementById("memberSelect");
@@ -69,6 +69,7 @@ document.addEventListener("change", event => {
 });
 
 function missionsAreOpen() { return state.settings.missions_open; }
+function galleryIsOpen() { return state.settings.gallery_open; }
 function quizIsOpen() { return state.settings.quiz_open; }
 function quizResultsAreOpen() { return state.settings.quiz_results_open; }
 function missionsReceived() { return Boolean(state.profile?.missions_received); }
@@ -149,8 +150,11 @@ function formatCompletedAt(value) {
 }
 
 function showView(id) {
-  if ((id === "missionsView" || id === "galleryView") && !missionsAreOpen()) {
-    notify("관리자가 공개하기 전에는 비밀 미션과 사진첩에 접근할 수 없습니다."); id = "dashboardView";
+  if (id === "missionsView" && !missionsAreOpen()) {
+    notify("관리자가 공개하기 전에는 비밀 미션에 접근할 수 없습니다."); id = "dashboardView";
+  }
+  if (id === "galleryView" && !galleryIsOpen()) {
+    notify("관리자가 공개하기 전에는 모두의 사진첩에 접근할 수 없습니다."); id = "dashboardView";
   }
   if (id === "quizView" && !quizIsOpen() && !quizResultsAreOpen()) {
     notify("관리자가 공개하기 전에는 작성자 맞히기에 접근할 수 없습니다."); id = "dashboardView";
@@ -178,9 +182,10 @@ function renderDashboard() {
   missionEntry.classList.toggle("locked", !open);
   missionEntry.setAttribute("aria-disabled", String(!open));
   document.getElementById("missionEntryCopy").textContent = open ? "5개의 순간을 확인합니다" : "관리자가 공개하면 확인할 수 있습니다";
-  galleryEntry.classList.toggle("locked", !open);
-  galleryEntry.setAttribute("aria-disabled", String(!open));
-  document.getElementById("galleryEntryCopy").textContent = open ? "포착한 순간을 모읍니다" : "관리자가 공개하면 확인할 수 있습니다";
+  const galleryOpen = galleryIsOpen();
+  galleryEntry.classList.toggle("locked", !galleryOpen);
+  galleryEntry.setAttribute("aria-disabled", String(!galleryOpen));
+  document.getElementById("galleryEntryCopy").textContent = galleryOpen ? "모두가 포착한 순간을 모읍니다" : "관리자가 공개하면 확인할 수 있습니다";
   const quizOpen = quizIsOpen();
   const quizAvailable = quizOpen || quizResultsAreOpen();
   quizEntry.classList.toggle("locked", !quizAvailable);
@@ -203,10 +208,20 @@ function renderAdmin() {
   control.classList.toggle("open", open);
   document.getElementById("missionAccessBadge").textContent = open ? "공개됨" : "비공개";
   document.getElementById("missionControlCopy").textContent = open
-    ? "모든 멤버가 자신의 비밀 미션과 사진첩에 접근할 수 있습니다."
-    : "현재 모든 멤버가 비밀 미션과 사진첩에 접근할 수 없습니다.";
+    ? "모든 멤버가 자신의 비밀 미션에 접근할 수 있습니다."
+    : "현재 모든 멤버가 비밀 미션에 접근할 수 없습니다.";
   button.disabled = false;
   button.firstChild.textContent = open ? "전체 다시 비공개 " : "전체 공개 ";
+
+  const galleryOpen = galleryIsOpen();
+  const galleryControl = document.getElementById("galleryControl");
+  const galleryButton = document.getElementById("openGalleryButton");
+  galleryControl.classList.toggle("open", galleryOpen);
+  document.getElementById("galleryAccessBadge").textContent = galleryOpen ? "공개됨" : "비공개";
+  document.getElementById("galleryControlCopy").textContent = galleryOpen
+    ? "모든 멤버가 모두의 사진첩에서 전체 미션 사진을 확인할 수 있습니다."
+    : "현재 모든 멤버가 모두의 사진첩에 접근할 수 없습니다.";
+  galleryButton.firstChild.textContent = galleryOpen ? "모두의 사진첩 다시 비공개 " : "모두의 사진첩 공개 ";
 
   const quizOpen = quizIsOpen();
   const quizControl = document.getElementById("quizControl");
@@ -330,13 +345,20 @@ document.getElementById("receiveMissionsButton").addEventListener("click", () =>
   }, 3000);
 });
 
-function renderGallery() {
-  const entries = Object.entries(state.photos);
+async function renderGallery() {
   const grid = document.getElementById("galleryGrid");
   const empty = document.getElementById("emptyGallery");
+  grid.classList.remove("hidden"); empty.classList.add("hidden");
+  grid.innerHTML = `<div class="quiz-blank" aria-label="사진을 불러오는 중"></div>`;
+  const { data, error } = await db.from("mission_photos").select("mission_index,storage_path,completed_at,profiles(name)").order("completed_at",{ascending:true});
+  if (error) { grid.innerHTML = ""; empty.classList.remove("hidden"); notify("사진첩을 불러오지 못했습니다."); return; }
+  const entries = await Promise.all((data || []).map(async row => {
+    const { data:signed } = await db.storage.from("mission-photos").createSignedUrl(row.storage_path,3600);
+    return { ...row, name:row.profiles?.name, photo:signed?.signedUrl || "" };
+  }));
   empty.classList.toggle("hidden", entries.length > 0);
   grid.classList.toggle("hidden", entries.length === 0);
-  grid.innerHTML = entries.map(([index, photo]) => `<article class="gallery-item"><img src="${photo}" alt="미션 사진"><div class="gallery-caption"><p>${missionSets[state.member][Number(index)]}</p><time>${formatCompletedAt(state.completedAt[index])}</time></div></article>`).join("");
+  grid.innerHTML = entries.map(entry => `<article class="gallery-item"><img src="${entry.photo}" alt="${entry.name || "멤버"}의 미션 사진"><div class="gallery-caption"><strong>${entry.name || "멤버"}</strong><p>${missionSets[entry.name]?.[Number(entry.mission_index)] || "미션 사진"}</p><time>${formatCompletedAt(entry.completed_at)}</time></div></article>`).join("");
 }
 
 function compressImage(file) {
@@ -427,14 +449,26 @@ document.getElementById("openMissionsButton").addEventListener("click", async ()
   if (state.member !== "최민규") return;
   const open = missionsAreOpen();
   const question = open
-    ? "모든 멤버의 비밀 미션과 사진첩 접근을 다시 차단하시겠습니까?"
-    : "모든 멤버에게 비밀 미션과 사진첩을 공개하시겠습니까?";
+    ? "모든 멤버의 비밀 미션 접근을 다시 차단하시겠습니까?"
+    : "모든 멤버에게 비밀 미션을 공개하시겠습니까?";
   if (!confirm(question)) return;
   const { error } = await db.from("app_settings").update({ missions_open:!open, updated_at:new Date().toISOString() }).eq("id",1);
   if (error) { notify("공개 상태를 변경하지 못했습니다."); return; }
   state.settings.missions_open = !open;
   renderAdmin();
-  notify(open ? "비밀 미션과 사진첩이 다시 비공개되었습니다." : "모든 멤버에게 비밀 미션과 사진첩이 공개되었습니다.");
+  notify(open ? "비밀 미션이 다시 비공개되었습니다." : "모든 멤버에게 비밀 미션이 공개되었습니다.");
+});
+
+document.getElementById("openGalleryButton").addEventListener("click", async () => {
+  if (state.member !== "최민규") return;
+  const open = galleryIsOpen();
+  const question = open ? "모두의 사진첩을 다시 비공개하시겠습니까?" : "모든 멤버에게 모두의 사진첩을 공개하시겠습니까?";
+  if (!confirm(question)) return;
+  const { error } = await db.from("app_settings").update({ gallery_open:!open, updated_at:new Date().toISOString() }).eq("id",1);
+  if (error) { notify("사진첩 공개 상태를 변경하지 못했습니다."); return; }
+  state.settings.gallery_open = !open;
+  renderAdmin();
+  notify(open ? "모두의 사진첩이 다시 비공개되었습니다." : "모두의 사진첩이 공개되었습니다.");
 });
 
 document.getElementById("openQuizButton").addEventListener("click", async () => {
