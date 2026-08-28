@@ -189,6 +189,7 @@ select:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(60,129,144,.1
 .result-person-tabs::-webkit-scrollbar { display:none; }
 .result-person-tab { flex:none; border:1px solid var(--line); background:var(--cream); padding:8px 11px; cursor:pointer; font-size:10px; font-weight:700; }
 .result-person-tab.active { border-color:var(--ink); color:#fff; background:var(--ink); }
+#galleryPersonTabs { margin-top:24px; }
 .group-result-card { padding:19px; border:1px solid var(--line); background:var(--cream); }
 .group-result-summary { display:flex; justify-content:space-between; align-items:center; }
 .group-result-summary strong { font-size:14px; }.group-result-summary b { color:var(--blue); font:700 14px "DM Sans"; }

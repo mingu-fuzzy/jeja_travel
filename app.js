@@ -47,6 +47,7 @@ const qtEntry = document.getElementById("qtEntry");
 const quizEntry = document.querySelector(".quiz-entry");
 let quizSubject = "";
 let resultSubject = members[0];
+let gallerySubject = "";
 let toastTimer;
 let settingsChannel;
 
@@ -373,6 +374,7 @@ document.getElementById("receiveMissionsButton").addEventListener("click", () =>
 async function renderGallery() {
   const grid = document.getElementById("galleryGrid");
   const empty = document.getElementById("emptyGallery");
+  if (!members.includes(gallerySubject)) gallerySubject = state.member;
   grid.classList.remove("hidden"); empty.classList.add("hidden");
   grid.innerHTML = `<div class="quiz-blank" aria-label="사진을 불러오는 중"></div>`;
   const { data, error } = await db.from("mission_photos").select("mission_index,storage_path,completed_at,profiles(name)").order("completed_at",{ascending:true});
@@ -381,24 +383,33 @@ async function renderGallery() {
     const { data:signed } = await db.storage.from("mission-photos").createSignedUrl(row.storage_path,3600);
     return { ...row, name:row.profiles?.name, photo:signed?.signedUrl || "" };
   }));
+  state.galleryEntries = entries;
+  renderGalleryPerson();
+}
+
+function renderGalleryPerson() {
+  const grid = document.getElementById("galleryGrid");
+  const empty = document.getElementById("emptyGallery");
+  const entries = state.galleryEntries || [];
+  document.getElementById("galleryPersonTabs").innerHTML = members.map(name =>
+    `<button class="result-person-tab ${name === gallerySubject ? "active" : ""}" type="button" data-gallery-subject="${name}">${name}</button>`
+  ).join("");
   const byMember = Object.fromEntries(members.map(name => [name, {}]));
   entries.forEach(entry => { if (byMember[entry.name]) byMember[entry.name][Number(entry.mission_index)] = entry; });
   empty.classList.add("hidden");
   grid.classList.remove("hidden");
-  grid.innerHTML = members.map(name => {
-    const completed = Object.keys(byMember[name]).length;
-    const missions = missionSets[name].map((mission, index) => {
-      const entry = byMember[name][index];
+  const completed = Object.keys(byMember[gallerySubject]).length;
+  const missions = missionSets[gallerySubject].map((mission, index) => {
+      const entry = byMember[gallerySubject][index];
       return `<article class="gallery-mission ${entry ? "complete" : "pending"}">
         <div class="gallery-mission-copy"><span>${String(index + 1).padStart(2,"0")}</span><div><h4>${mission}</h4><small>${entry ? `완료 · ${formatCompletedAt(entry.completed_at)}` : "아직 사진이 등록되지 않았습니다."}</small></div></div>
-        ${entry ? `<img src="${entry.photo}" alt="${name}의 ${index + 1}번 미션 사진">` : `<div class="gallery-photo-placeholder"><span>PHOTO</span></div>`}
+        ${entry ? `<img src="${entry.photo}" alt="${gallerySubject}의 ${index + 1}번 미션 사진">` : `<div class="gallery-photo-placeholder"><span>PHOTO</span></div>`}
       </article>`;
-    }).join("");
-    return `<section class="member-gallery">
-      <div class="member-gallery-head"><div><span>MEMBER</span><h3>${name}</h3></div><strong>${completed} / 5 완료</strong></div>
+  }).join("");
+  grid.innerHTML = `<section class="member-gallery">
+      <div class="member-gallery-head"><div><span>MEMBER</span><h3>${gallerySubject}</h3></div><strong>${completed} / 5 완료</strong></div>
       <div class="member-gallery-missions">${missions}</div>
     </section>`;
-  }).join("");
 }
 
 function compressImage(file) {
@@ -569,6 +580,8 @@ document.addEventListener("click", async event => {
   }
   const resultButton = event.target.closest("[data-result-subject]");
   if (resultButton) { resultSubject = resultButton.dataset.resultSubject; renderGroupQuizResults(); }
+  const galleryButton = event.target.closest("[data-gallery-subject]");
+  if (galleryButton) { gallerySubject = galleryButton.dataset.gallerySubject; renderGalleryPerson(); }
 });
 
 document.getElementById("quizForm").addEventListener("submit", async event => {
@@ -626,7 +639,7 @@ document.getElementById("homeButton").addEventListener("click", () => showView("
 document.getElementById("logoutButton").addEventListener("click", async () => {
   if (settingsChannel) { await db.removeChannel(settingsChannel); settingsChannel = null; }
   await db.auth.signOut();
-  state.member = ""; state.user = null; state.profile = null; state.photos = {}; state.photoPaths = {}; state.completedAt = {}; select.value = ""; updateLoginMode(); showView("loginView");
+  state.member = ""; state.user = null; state.profile = null; state.photos = {}; state.photoPaths = {}; state.completedAt = {}; state.galleryEntries = []; gallerySubject = ""; select.value = ""; updateLoginMode(); showView("loginView");
 });
 
 (async function initialize() {
