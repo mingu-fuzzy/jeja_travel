@@ -347,7 +347,7 @@ function renderMissions() {
       <div class="mission-head"><span class="mission-index">${photo ? "✓" : String(index + 1).padStart(2, "0")}</span>
         <div><h3>${mission}</h3><span class="status">${photo ? `완료 · ${formatCompletedAt(state.completedAt[index])}` : "SECRET MISSION"}</span></div>
       </div>
-      ${photo ? `<img class="mission-thumb" src="${photo}" alt="${mission} 미션 사진"><button class="remove-photo" data-remove="${index}" type="button">사진 지우고 다시 찍기</button>` : `<label class="upload-label">사진 촬영 또는 선택<input type="file" accept="image/*" data-upload="${index}"></label>`}
+      ${photo ? `<img class="mission-thumb" src="${photo}" alt="${mission} 미션 사진"><button class="remove-photo" data-remove="${index}" type="button">사진 지우고 다시 찍기</button>` : `<div class="upload-actions"><label class="upload-label">사진에서 선택<input type="file" accept="image/*" data-upload="${index}"></label><label class="upload-label file-upload-label">내 파일에서 찾기<input type="file" data-upload="${index}"></label></div>`}
     </article>`;
   }).join("");
 }
@@ -665,8 +665,15 @@ document.getElementById("quizForm").addEventListener("submit", async event => {
 document.addEventListener("change", async event => {
   const input = event.target.closest("[data-upload]");
   if (!input || !input.files[0]) return;
+  const selectedFile = input.files[0];
+  const imageExtension = /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(selectedFile.name);
+  if (!selectedFile.type.startsWith("image/") && !imageExtension) {
+    input.value = "";
+    notify("이미지 파일만 선택할 수 있습니다.");
+    return;
+  }
   try {
-    const data = await compressImage(input.files[0]);
+    const data = await compressImage(selectedFile);
     const completed = new Date().toISOString();
     const blob = await (await fetch(data)).blob();
     const path = `${state.user.id}/mission-${input.dataset.upload}.jpg`;
