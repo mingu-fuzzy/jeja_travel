@@ -132,6 +132,12 @@ select:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(60,129,144,.1
 .gallery-mission small { color:#7a898b; font-size:9px; }
 .gallery-mission img,.gallery-photo-placeholder { width:100%; aspect-ratio:16/10; margin-top:12px; }
 .gallery-mission img { display:block; object-fit:cover; }
+.heart-balance { display:inline-flex; align-items:center; gap:5px; margin:5px 0 0; padding:7px 10px; color:#7a4c48; background:#f8dfd8; font-size:10px; }
+.heart-balance span { color:var(--coral); font-size:13px; }.heart-balance strong { color:var(--coral); font-size:13px; }
+.photo-like-button { display:flex; align-items:center; gap:6px; width:100%; margin-top:0; padding:10px 12px; border:1px solid var(--line); border-top:0; color:#6f7e80; background:#fff; cursor:pointer; }
+.photo-like-button>span { color:var(--coral); font-size:21px; line-height:1; }.photo-like-button>b { color:var(--ink); font:700 12px "DM Sans"; }
+.photo-like-button>small { margin-left:auto; font-size:9px; }.photo-like-button.liked { color:#fff; background:var(--coral); border-color:var(--coral); }
+.photo-like-button.liked>span,.photo-like-button.liked>b { color:#fff; }.photo-like-button:disabled { opacity:.55; cursor:wait; }
 .gallery-photo-placeholder { display:grid; place-items:center; border:1px dashed #b8bfba; color:#a4adaa; background:rgba(25,49,58,.025); font:700 9px "DM Sans"; letter-spacing:.18em; }
 .qt-reference { margin:-5px 0 24px; color:var(--blue); font-size:12px; font-weight:700; }
 .scripture-card { padding:10px 22px; border-top:3px solid var(--yellow); background:var(--cream); box-shadow:8px 8px 0 rgba(60,129,144,.17); }

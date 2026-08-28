@@ -27,7 +27,7 @@ members.forEach(subject => {
 
 const db = window.supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
 const memberEmails = { "서성준":"seongjun@jeja-travel.com", "최민규":"minkyu@jeja-travel.com", "한은혜":"eunhye@jeja-travel.com", "이다경":"dagyeong@jeja-travel.com", "김학진":"hakjin@jeja-travel.com", "은태경":"taegyeong@jeja-travel.com", "이은비":"eunbi@jeja-travel.com" };
-const state = { member:"", user:null, profile:null, photos:{}, photoPaths:{}, completedAt:{}, settings:{missions_open:false,gallery_open:false,qt_open:false,quiz_open:false,quiz_results_open:false}, groupProgress:{}, quizResults:{} };
+const state = { member:"", user:null, profile:null, photos:{}, photoPaths:{}, completedAt:{}, settings:{missions_open:false,gallery_open:false,qt_open:false,quiz_open:false,quiz_results_open:false}, groupProgress:{}, quizResults:{}, galleryEntries:[], galleryLikes:[], likedPhotoIds:new Set() };
 const views = [...document.querySelectorAll(".view")];
 const topbar = document.getElementById("topbar");
 const select = document.getElementById("memberSelect");
@@ -377,13 +377,17 @@ async function renderGallery() {
   if (!members.includes(gallerySubject)) gallerySubject = state.member;
   grid.classList.remove("hidden"); empty.classList.add("hidden");
   grid.innerHTML = `<div class="quiz-blank" aria-label="사진을 불러오는 중"></div>`;
-  const { data, error } = await db.from("mission_photos").select("mission_index,storage_path,completed_at,profiles(name)").order("completed_at",{ascending:true});
+  const { data, error } = await db.from("mission_photos").select("id,mission_index,storage_path,completed_at,profiles(name)").order("completed_at",{ascending:true});
   if (error) { grid.innerHTML = ""; empty.classList.remove("hidden"); notify("사진첩을 불러오지 못했습니다."); return; }
   const entries = await Promise.all((data || []).map(async row => {
     const { data:signed } = await db.storage.from("mission-photos").createSignedUrl(row.storage_path,3600);
     return { ...row, name:row.profiles?.name, photo:signed?.signedUrl || "" };
   }));
   state.galleryEntries = entries;
+  const { data:likes, error:likesError } = await db.from("photo_likes").select("photo_id,user_id");
+  if (likesError) { notify("하트 정보를 불러오지 못했습니다."); state.galleryLikes = []; }
+  else state.galleryLikes = likes || [];
+  state.likedPhotoIds = new Set(state.galleryLikes.filter(like => like.user_id === state.user.id).map(like => Number(like.photo_id)));
   renderGalleryPerson();
 }
 
@@ -391,6 +395,8 @@ function renderGalleryPerson() {
   const grid = document.getElementById("galleryGrid");
   const empty = document.getElementById("emptyGallery");
   const entries = state.galleryEntries || [];
+  const remaining = Math.max(0, 20 - state.likedPhotoIds.size);
+  document.getElementById("heartBalance").innerHTML = `<span>♥</span> 남은 하트 <strong>${remaining}</strong>개`;
   document.getElementById("galleryPersonTabs").innerHTML = members.map(name =>
     `<button class="result-person-tab ${name === gallerySubject ? "active" : ""}" type="button" data-gallery-subject="${name}">${name}</button>`
   ).join("");
@@ -401,9 +407,11 @@ function renderGalleryPerson() {
   const completed = Object.keys(byMember[gallerySubject]).length;
   const missions = missionSets[gallerySubject].map((mission, index) => {
       const entry = byMember[gallerySubject][index];
+      const liked = entry ? state.likedPhotoIds.has(Number(entry.id)) : false;
+      const likeCount = entry ? state.galleryLikes.filter(like => Number(like.photo_id) === Number(entry.id)).length : 0;
       return `<article class="gallery-mission ${entry ? "complete" : "pending"}">
         <div class="gallery-mission-copy"><span>${String(index + 1).padStart(2,"0")}</span><div><h4>${mission}</h4><small>${entry ? `완료 · ${formatCompletedAt(entry.completed_at)}` : "아직 사진이 등록되지 않았습니다."}</small></div></div>
-        ${entry ? `<img src="${entry.photo}" alt="${gallerySubject}의 ${index + 1}번 미션 사진">` : `<div class="gallery-photo-placeholder"><span>PHOTO</span></div>`}
+        ${entry ? `<img src="${entry.photo}" alt="${gallerySubject}의 ${index + 1}번 미션 사진"><button class="photo-like-button ${liked ? "liked" : ""}" type="button" data-photo-like="${entry.id}" aria-pressed="${liked}"><span>${liked ? "♥" : "♡"}</span><b>${likeCount}</b><small>${liked ? "좋아요 취소" : "좋아요"}</small></button>` : `<div class="gallery-photo-placeholder"><span>PHOTO</span></div>`}
       </article>`;
   }).join("");
   grid.innerHTML = `<section class="member-gallery">
@@ -582,6 +590,29 @@ document.addEventListener("click", async event => {
   if (resultButton) { resultSubject = resultButton.dataset.resultSubject; renderGroupQuizResults(); }
   const galleryButton = event.target.closest("[data-gallery-subject]");
   if (galleryButton) { gallerySubject = galleryButton.dataset.gallerySubject; renderGalleryPerson(); }
+  const likeButton = event.target.closest("[data-photo-like]");
+  if (likeButton) {
+    const photoId = Number(likeButton.dataset.photoLike);
+    likeButton.disabled = true;
+    if (state.likedPhotoIds.has(photoId)) {
+      const { error } = await db.from("photo_likes").delete().eq("user_id",state.user.id).eq("photo_id",photoId);
+      if (error) notify(`좋아요를 취소하지 못했습니다: ${error.message}`);
+      else {
+        state.likedPhotoIds.delete(photoId);
+        state.galleryLikes = state.galleryLikes.filter(like => !(like.user_id === state.user.id && Number(like.photo_id) === photoId));
+        renderGalleryPerson();
+      }
+    } else {
+      if (state.likedPhotoIds.size >= 20) { notify("사용할 수 있는 하트 20개를 모두 사용했습니다."); likeButton.disabled = false; return; }
+      const { error } = await db.from("photo_likes").insert({ user_id:state.user.id, photo_id:photoId });
+      if (error) notify(`좋아요를 저장하지 못했습니다: ${error.message}`);
+      else {
+        state.likedPhotoIds.add(photoId);
+        state.galleryLikes.push({ user_id:state.user.id, photo_id:photoId });
+        renderGalleryPerson();
+      }
+    }
+  }
 });
 
 document.getElementById("quizForm").addEventListener("submit", async event => {
@@ -639,7 +670,7 @@ document.getElementById("homeButton").addEventListener("click", () => showView("
 document.getElementById("logoutButton").addEventListener("click", async () => {
   if (settingsChannel) { await db.removeChannel(settingsChannel); settingsChannel = null; }
   await db.auth.signOut();
-  state.member = ""; state.user = null; state.profile = null; state.photos = {}; state.photoPaths = {}; state.completedAt = {}; state.galleryEntries = []; gallerySubject = ""; select.value = ""; updateLoginMode(); showView("loginView");
+  state.member = ""; state.user = null; state.profile = null; state.photos = {}; state.photoPaths = {}; state.completedAt = {}; state.galleryEntries = []; state.galleryLikes = []; state.likedPhotoIds = new Set(); gallerySubject = ""; select.value = ""; updateLoginMode(); showView("loginView");
 });
 
 (async function initialize() {

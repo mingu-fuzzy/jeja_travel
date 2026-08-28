@@ -24,6 +24,24 @@ create table if not exists public.quiz_results (
   id bigint generated always as identity primary key, user_id uuid unique not null references public.profiles(id) on delete cascade,
   answers jsonb not null, score smallint not null, total smallint not null, submitted_at timestamptz not null default now()
 );
+create table if not exists public.photo_likes (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  photo_id bigint not null references public.mission_photos(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, photo_id)
+);
+create or replace function public.enforce_photo_like_limit() returns trigger
+language plpgsql security definer set search_path=public as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended(new.user_id::text, 0));
+  if (select count(*) from public.photo_likes where user_id=new.user_id) >= 20 then
+    raise exception '사용할 수 있는 하트 20개를 모두 사용했습니다.';
+  end if;
+  return new;
+end; $$;
+drop trigger if exists photo_like_limit on public.photo_likes;
+create trigger photo_like_limit before insert on public.photo_likes
+for each row execute function public.enforce_photo_like_limit();
 create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$
 declare requested_name text;
 begin
@@ -58,6 +76,7 @@ alter table public.profiles enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.mission_photos enable row level security;
 alter table public.quiz_results enable row level security;
+alter table public.photo_likes enable row level security;
 drop policy if exists profiles_read on public.profiles;
 create policy profiles_read on public.profiles for select to authenticated using(true);
 drop policy if exists profiles_update_own on public.profiles;
@@ -80,6 +99,14 @@ drop policy if exists quiz_insert_own on public.quiz_results;
 create policy quiz_insert_own on public.quiz_results for insert to authenticated with check(user_id=auth.uid());
 drop policy if exists quiz_read on public.quiz_results;
 create policy quiz_read on public.quiz_results for select to authenticated using(user_id=auth.uid() or (select quiz_results_open from public.app_settings where id=1));
+drop policy if exists photo_likes_read on public.photo_likes;
+create policy photo_likes_read on public.photo_likes for select to authenticated
+using(public.is_admin() or (select gallery_open from public.app_settings where id=1));
+drop policy if exists photo_likes_insert on public.photo_likes;
+create policy photo_likes_insert on public.photo_likes for insert to authenticated
+with check(user_id=auth.uid() and (select gallery_open from public.app_settings where id=1));
+drop policy if exists photo_likes_delete on public.photo_likes;
+create policy photo_likes_delete on public.photo_likes for delete to authenticated using(user_id=auth.uid());
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values('mission-photos','mission-photos',false,5242880,array['image/jpeg','image/png','image/webp'])
 on conflict(id) do update set public=false,file_size_limit=5242880,allowed_mime_types=array['image/jpeg','image/png','image/webp'];
