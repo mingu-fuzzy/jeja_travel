@@ -112,7 +112,9 @@ function subscribeToSettings() {
         (data || []).forEach(row => { if (row.profiles?.name) state.quizResults[row.profiles.name] = { answers:row.answers, correct:row.score, total:row.total, submittedAt:row.submitted_at }; });
       }
       const active = document.querySelector(".view.active")?.id || "dashboardView";
-      showView(active);
+      if (active === "adminView") renderAdmin();
+      else if (active === "dashboardView") renderDashboard();
+      else showView(active);
     }).subscribe();
 }
 
