@@ -30,6 +30,14 @@ create table if not exists public.photo_likes (
   created_at timestamptz not null default now(),
   primary key (user_id, photo_id)
 );
+create table if not exists public.evaluation_entries (
+  id bigint generated always as identity primary key,
+  subject text not null check (subject in ('서성준','최민규','한은혜','이다경','김학진','은태경','이은비')),
+  author text not null check (author in ('서성준','최민규','한은혜','이다경','김학진','은태경','이은비')),
+  body text not null,
+  sort_order smallint not null check (sort_order between 1 and 7),
+  unique(subject,author)
+);
 create or replace function public.enforce_photo_like_limit() returns trigger
 language plpgsql security definer set search_path=public as $$
 begin
@@ -92,6 +100,7 @@ alter table public.app_settings enable row level security;
 alter table public.mission_photos enable row level security;
 alter table public.quiz_results enable row level security;
 alter table public.photo_likes enable row level security;
+alter table public.evaluation_entries enable row level security;
 drop policy if exists profiles_read on public.profiles;
 create policy profiles_read on public.profiles for select to authenticated using(true);
 drop policy if exists profiles_update_own on public.profiles;
@@ -123,6 +132,9 @@ with check(user_id=auth.uid() and (select gallery_open from public.app_settings 
 drop policy if exists photo_likes_delete on public.photo_likes;
 create policy photo_likes_delete on public.photo_likes for delete to authenticated using(user_id=auth.uid());
 grant select, insert, delete on public.photo_likes to authenticated;
+drop policy if exists evaluation_entries_read on public.evaluation_entries;
+create policy evaluation_entries_read on public.evaluation_entries for select to authenticated using(true);
+grant select on public.evaluation_entries to authenticated;
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values('mission-photos','mission-photos',false,5242880,array['image/jpeg','image/png','image/webp'])
 on conflict(id) do update set public=false,file_size_limit=5242880,allowed_mime_types=array['image/jpeg','image/png','image/webp'];

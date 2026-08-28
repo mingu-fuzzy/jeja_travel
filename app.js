@@ -10,7 +10,7 @@ const missionSets = {
   "김학진": ["'지금 뭐 하는 거지?' 싶은 엉뚱한 순간 찍기", "카메라를 전혀 의식하지 않는 자연스러운 단체 순간 찍기", "오늘 가장 웃긴 표정을 한 사람 찍기", "여행지에서 처음 보는 것에 놀란 사람 찍기", "여행의 시작과 끝을 닮은 구도로 한 장씩 찍기"]
 };
 
-const evaluationData = window.EVALUATION_DATA;
+let evaluationData = window.EVALUATION_DATA;
 
 const db = window.supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
 const memberEmails = { "서성준":"seongjun@jeja-travel.com", "최민규":"minkyu@jeja-travel.com", "한은혜":"eunhye@jeja-travel.com", "이다경":"dagyeong@jeja-travel.com", "김학진":"hakjin@jeja-travel.com", "은태경":"taegyeong@jeja-travel.com", "이은비":"eunbi@jeja-travel.com" };
@@ -117,11 +117,12 @@ function subscribeToSettings() {
 }
 
 async function loadOnlineState() {
-  const [{ data:profile, error:profileError },{ data:settings, error:settingsError },{ data:progress },{ data:results }] = await Promise.all([
+  const [{ data:profile, error:profileError },{ data:settings, error:settingsError },{ data:progress },{ data:results },{ data:evaluations, error:evaluationsError }] = await Promise.all([
     db.from("profiles").select("id,name,role,missions_received").eq("id",state.user.id).single(),
     db.from("app_settings").select("*").eq("id",1).single(),
     db.rpc("group_progress"),
-    db.from("quiz_results").select("user_id,answers,score,total,submitted_at,profiles(name)")
+    db.from("quiz_results").select("user_id,answers,score,total,submitted_at,profiles(name)"),
+    db.from("evaluation_entries").select("subject,author,body,sort_order").order("sort_order",{ascending:true})
   ]);
   if (profileError) throw profileError;
   if (settingsError) throw settingsError;
@@ -129,6 +130,14 @@ async function loadOnlineState() {
   state.groupProgress=Object.fromEntries((progress||[]).map(row=>[row.name,Number(row.completed_count)]));
   state.quizResults={};
   (results||[]).forEach(row=>{ if(row.profiles?.name) state.quizResults[row.profiles.name]={answers:row.answers,correct:row.score,total:row.total,submittedAt:row.submitted_at}; });
+  if (!evaluationsError && evaluations?.length) {
+    evaluationData = Object.fromEntries(members.map(name => [name, []]));
+    evaluations.forEach(entry => {
+      if (entry.author !== entry.subject && evaluationData[entry.subject]) evaluationData[entry.subject].push({ author:entry.author, text:entry.body });
+    });
+  } else if (evaluationsError) {
+    notify(`평가 데이터를 불러오지 못해 기본 데이터를 사용합니다: ${evaluationsError.message}`);
+  }
   await loadPhotos();
 }
 
