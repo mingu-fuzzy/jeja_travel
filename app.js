@@ -172,9 +172,15 @@ function showView(id) {
   if (id === "dashboardView") renderDashboard();
   if (id === "missionsView") renderMissions();
   if (id === "galleryView") renderGallery();
+  if (id === "qtView") showQtPage(0);
   if (id === "adminView") renderAdmin();
   if (id === "quizView") renderQuiz();
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function showQtPage(page) {
+  document.querySelectorAll("[data-qt-page]").forEach(section => section.classList.toggle("hidden", Number(section.dataset.qtPage) !== page));
+  window.scrollTo({ top:0, behavior:"smooth" });
 }
 
 function renderDashboard() {
@@ -546,6 +552,8 @@ document.getElementById("openQuizResultsButton").addEventListener("click", async
 });
 
 document.addEventListener("click", async event => {
+  const qtPageButton = event.target.closest("[data-qt-go]");
+  if (qtPageButton) { showQtPage(Number(qtPageButton.dataset.qtGo)); return; }
   const nav = event.target.closest("[data-target]");
   if (nav) showView(nav.dataset.target);
   const remove = event.target.closest("[data-remove]");

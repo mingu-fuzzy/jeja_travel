@@ -134,20 +134,38 @@
         <button class="back-button" data-target="dashboardView" type="button">← 홈으로</button>
         <p class="eyebrow">오늘의 QT</p>
         <h2>오늘의 QT</h2>
-        <p class="qt-reference">시편 100편 1~5절</p>
-        <div class="scripture-card">
-          <p><b>1</b><span>온 땅이여 여호와께 즐거운 찬송을 부를지어다</span></p>
-          <p><b>2</b><span>기쁨으로 여호와를 섬기며 노래하면서 그의 앞에 나아갈지어다</span></p>
-          <p><b>3</b><span>여호와가 우리 하나님이신 줄 너희는 알지어다 그는 우리를 지으신 이요 우리는 그의 것이며 그의 백성이요 그의 기르시는 양이로다</span></p>
-          <p><b>4</b><span>감사함으로 그의 문에 들어가며 찬송함으로 그의 궁정에 들어가서 그에게 감사하며 그의 이름을 송축할지어다</span></p>
-          <p><b>5</b><span>여호와는 선하시니 그의 인자하심이 영원하고 그의 성실하심이 대대에 이르리로다</span></p>
+        <div class="qt-page" data-qt-page="0">
+          <p class="qt-reference">시편 100편 1~5절</p>
+          <div class="scripture-card">
+            <p><b>1</b><span>온 땅이여 여호와께 즐거운 찬송을 부를지어다</span></p>
+            <p><b>2</b><span>기쁨으로 여호와를 섬기며 노래하면서 그의 앞에 나아갈지어다</span></p>
+            <p><b>3</b><span>여호와가 우리 하나님이신 줄 너희는 알지어다 그는 우리를 지으신 이요 우리는 그의 것이며 그의 백성이요 그의 기르시는 양이로다</span></p>
+            <p><b>4</b><span>감사함으로 그의 문에 들어가며 찬송함으로 그의 궁정에 들어가서 그에게 감사하며 그의 이름을 송축할지어다</span></p>
+            <p><b>5</b><span>여호와는 선하시니 그의 인자하심이 영원하고 그의 성실하심이 대대에 이르리로다</span></p>
+          </div>
+          <nav class="qt-pagination" aria-label="QT 페이지 이동">
+            <span class="qt-page-count">1 / 2</span>
+            <button class="qt-next-button" type="button" data-qt-go="1">나눔 질문으로 <span>→</span></button>
+          </nav>
+        </div>
+        <div class="qt-page hidden" data-qt-page="1">
+          <p class="qt-reference">함께 생각하고 나눕니다</p>
+          <div class="qt-question-list">
+            <article><b>01</b><p>기억에 남는 구절이나 단어는 무엇인가요?</p></article>
+            <article><b>02</b><p>교회에서 어떤 일로 인해 힘들었던 기억이 있으신가요? 힘든 일을 겪음에도 불구하고 감사하거나 즐거웠던 점은 무엇이었나요?</p></article>
+            <article><b>03</b><p>너무 익숙해져서 감사하지 못하고 있는 것은 무엇인가요?</p></article>
+          </div>
+          <nav class="qt-pagination" aria-label="QT 페이지 이동">
+            <button class="qt-prev-button" type="button" data-qt-go="0"><span>←</span> 말씀으로</button>
+            <span class="qt-page-count">2 / 2</span>
+          </nav>
         </div>
       </section>
 
       <section class="view content-view" id="adminView">
         <button class="back-button" data-target="dashboardView" type="button">← 홈으로</button>
         <p class="eyebrow">ADMIN ONLY</p>
-        <h2>비밀번호<br>관리</h2>
+        <h2>관리자<br>페이지</h2>
         <p class="section-copy">멤버를 선택한 후 새로운 비밀번호를 설정합니다.</p>
 
         <form class="admin-form" id="adminPasswordForm">
@@ -246,6 +264,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js?v=20260828-2"></script>
-  <script src="app.js?v=20260828-6"></script>
+  <script src="app.js?v=20260828-7"></script>
 </body>
 </html>
