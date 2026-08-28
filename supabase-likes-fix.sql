@@ -35,4 +35,6 @@ using(user_id=auth.uid());
 
 grant select, insert, delete on public.photo_likes to authenticated;
 
+notify pgrst, 'reload schema';
+
 select 'photo_likes ready' as status;

@@ -133,3 +133,4 @@ grant execute on function public.account_exists(text) to anon, authenticated;
 revoke all on function public.reset_mission_receipts() from public, anon;
 grant execute on function public.reset_mission_receipts() to authenticated;
 do $$ begin alter publication supabase_realtime add table public.app_settings; exception when duplicate_object then null; end $$;
+notify pgrst, 'reload schema';
