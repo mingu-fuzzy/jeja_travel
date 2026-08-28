@@ -347,7 +347,7 @@ function renderMissions() {
       <div class="mission-head"><span class="mission-index">${photo ? "✓" : String(index + 1).padStart(2, "0")}</span>
         <div><h3>${mission}</h3><span class="status">${photo ? `완료 · ${formatCompletedAt(state.completedAt[index])}` : "SECRET MISSION"}</span></div>
       </div>
-      ${photo ? `<img class="mission-thumb" src="${photo}" alt="${mission} 미션 사진"><button class="remove-photo" data-remove="${index}" type="button">사진 지우고 다시 찍기</button>` : `<label class="upload-label">사진 촬영 또는 선택<input type="file" accept="image/*" capture="environment" data-upload="${index}"></label>`}
+      ${photo ? `<img class="mission-thumb" src="${photo}" alt="${mission} 미션 사진"><button class="remove-photo" data-remove="${index}" type="button">사진 지우고 다시 찍기</button>` : `<label class="upload-label">사진 촬영 또는 선택<input type="file" accept="image/*" data-upload="${index}"></label>`}
     </article>`;
   }).join("");
 }
