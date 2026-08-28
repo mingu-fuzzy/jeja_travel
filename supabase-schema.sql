@@ -72,6 +72,14 @@ language sql stable security definer set search_path=public as $$
 create or replace function public.account_exists(target_name text) returns boolean
 language sql stable security definer set search_path=public as $$
   select exists(select 1 from public.profiles where name=target_name); $$;
+create or replace function public.reset_mission_receipts() returns void
+language plpgsql security definer set search_path=public as $$
+begin
+  if not public.is_admin() then
+    raise exception '관리자만 미션 수령 상태를 초기화할 수 있습니다.';
+  end if;
+  update public.profiles set missions_received=false;
+end; $$;
 alter table public.profiles enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.mission_photos enable row level security;
@@ -121,4 +129,6 @@ create policy storage_photo_delete on storage.objects for delete to authenticate
 grant execute on function public.group_progress() to authenticated;
 grant execute on function public.is_admin() to authenticated;
 grant execute on function public.account_exists(text) to anon, authenticated;
+revoke all on function public.reset_mission_receipts() from public, anon;
+grant execute on function public.reset_mission_receipts() to authenticated;
 do $$ begin alter publication supabase_realtime add table public.app_settings; exception when duplicate_object then null; end $$;

@@ -169,6 +169,9 @@ select:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(60,129,144,.1
 .mission-control h3 { margin:24px 0 8px; font-size:20px; }
 .mission-control p { margin:0 0 18px; color:#697b7e; font-size:11px; line-height:1.65; }
 .mission-control .primary-button { background:var(--coral); color:#fff; }
+.admin-reset-button { display:flex; justify-content:space-between; width:100%; margin-top:9px; padding:12px 15px; border:1px solid #b85c4a; color:#9f4737; background:transparent; font-size:11px; font-weight:800; cursor:pointer; }
+.admin-reset-button:hover { color:#fff; background:#b85c4a; }
+.mission-control .admin-reset-guide { margin:8px 0 0; color:#8a9697; font-size:9px; }
 .quiz-subject { margin-top:25px; padding:22px; color:#fff; background:var(--ink); }
 .quiz-subject>span { font:700 8px "DM Sans"; letter-spacing:.16em; color:var(--yellow); }
 .quiz-subject h3 { margin:11px 0 10px; font-size:19px; line-height:1.5; }

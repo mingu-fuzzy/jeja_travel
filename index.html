@@ -194,6 +194,8 @@
           <h3 id="missionControlTitle">비밀 미션 공개</h3>
           <p id="missionControlCopy">현재 모든 멤버가 비밀 미션에 접근할 수 없습니다.</p>
           <button class="primary-button" id="openMissionsButton" type="button">전체 공개 <span>→</span></button>
+          <button class="admin-reset-button" id="resetMissionReceiptsButton" type="button">미션 수령 상태 초기화 <span>↻</span></button>
+          <p class="admin-reset-guide">사진은 삭제되지 않으며, 모든 멤버에게 미션 수령하기 화면이 다시 표시됩니다.</p>
         </section>
 
         <section class="mission-control" id="galleryControl" aria-labelledby="galleryControlTitle">
@@ -266,6 +268,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js?v=20260828-2"></script>
-  <script src="app.js?v=20260828-9"></script>
+  <script src="app.js?v=20260828-10"></script>
 </body>
 </html>

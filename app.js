@@ -518,6 +518,16 @@ document.getElementById("openMissionsButton").addEventListener("click", async ()
   notify(open ? "비밀 미션이 다시 비공개되었습니다." : "모든 멤버에게 비밀 미션이 공개되었습니다.");
 });
 
+document.getElementById("resetMissionReceiptsButton").addEventListener("click", async () => {
+  if (state.member !== "최민규") return;
+  const question = "모든 멤버의 미션 수령 상태를 초기화하시겠습니까? 이미 저장된 사진과 완료 시간은 삭제되지 않습니다.";
+  if (!confirm(question)) return;
+  const { error } = await db.rpc("reset_mission_receipts");
+  if (error) { notify(`미션 수령 상태를 초기화하지 못했습니다: ${error.message}`); return; }
+  state.profile.missions_received = false;
+  notify("모든 멤버가 미션을 다시 수령할 수 있습니다.");
+});
+
 document.getElementById("openGalleryButton").addEventListener("click", async () => {
   if (state.member !== "최민규") return;
   const open = galleryIsOpen();
