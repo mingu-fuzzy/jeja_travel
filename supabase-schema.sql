@@ -25,7 +25,18 @@ create table if not exists public.quiz_results (
 create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$
 declare requested_name text;
 begin
-  requested_name := new.raw_user_meta_data ->> 'display_name';
+  requested_name := coalesce(
+    new.raw_user_meta_data ->> 'display_name',
+    case lower(new.email)
+      when 'seongjun@jeja-travel.com' then '서성준'
+      when 'minkyu@jeja-travel.com' then '최민규'
+      when 'eunhye@jeja-travel.com' then '한은혜'
+      when 'dagyeong@jeja-travel.com' then '이다경'
+      when 'hakjin@jeja-travel.com' then '김학진'
+      when 'taegyeong@jeja-travel.com' then '은태경'
+      when 'eunbi@jeja-travel.com' then '이은비'
+    end
+  );
   if requested_name not in ('서성준','최민규','한은혜','이다경','김학진','은태경','이은비') then raise exception '허용되지 않은 이름'; end if;
   insert into public.profiles(id,name,role) values(new.id,requested_name,case when requested_name='최민규' then 'admin' else 'member' end);
   return new;
