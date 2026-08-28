@@ -25,7 +25,9 @@ members.forEach(subject => {
   }
 });
 
-const state = { member: localStorage.getItem("jeju-member") || "", photos: {}, completedAt: {} };
+const db = window.supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
+const memberEmails = { "서성준":"seongjun@jeja.local", "최민규":"mingyu@jeja.local", "한은혜":"eunhye@jeja.local", "이다경":"dagyeong@jeja.local", "김학진":"hakjin@jeja.local", "은태경":"taegyeong@jeja.local", "이은비":"eunbi@jeja.local" };
+const state = { member:"", user:null, profile:null, photos:{}, photoPaths:{}, completedAt:{}, settings:{missions_open:false,quiz_open:false,quiz_results_open:false}, groupProgress:{}, quizResults:{} };
 const views = [...document.querySelectorAll(".view")];
 const topbar = document.getElementById("topbar");
 const select = document.getElementById("memberSelect");
@@ -45,6 +47,7 @@ const quizEntry = document.querySelector(".quiz-entry");
 let quizSubject = "";
 let resultSubject = members[0];
 let toastTimer;
+let settingsChannel;
 
 members.forEach(name => {
   select.add(new Option(name, name));
@@ -65,27 +68,18 @@ document.addEventListener("change", event => {
   if (event.target.matches("input, select")) event.target.setCustomValidity("");
 });
 
-function photoKey(member, index) { return `jeju-photo:${member}:${index}`; }
-function completedKey(member, index) { return `jeju-completed-at:${member}:${index}`; }
-function passwordKey(member) { return `jeju-password:${member}`; }
-function missionsAreOpen() { return localStorage.getItem("jeju-missions-open") === "true"; }
-function quizIsOpen() { return localStorage.getItem("jeju-quiz-open") === "true"; }
-function quizResultsAreOpen() { return localStorage.getItem("jeju-quiz-results-open") === "true"; }
-function receivedKey(member) { return `jeju-missions-received:${member}`; }
-function missionsReceived() { return localStorage.getItem(receivedKey(state.member)) === "true"; }
-function quizResultKey(member) { return `jeju-quiz-result:${member}`; }
-function savedQuizResult(member) {
-  try { return JSON.parse(localStorage.getItem(quizResultKey(member))) || null; }
-  catch (error) { return null; }
-}
-function hasPassword(member) { return Boolean(localStorage.getItem(passwordKey(member))); }
-async function hashPassword(member, password) {
-  const bytes = new TextEncoder().encode(`jeju-seven:${member}:${password}`);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, "0")).join("");
+function missionsAreOpen() { return state.settings.missions_open; }
+function quizIsOpen() { return state.settings.quiz_open; }
+function quizResultsAreOpen() { return state.settings.quiz_results_open; }
+function missionsReceived() { return Boolean(state.profile?.missions_received); }
+function savedQuizResult(member) { return state.quizResults[member] || null; }
+async function hasPassword(member) {
+  const { data, error } = await db.rpc("account_exists", { target_name:member });
+  if (error) throw error;
+  return Boolean(data);
 }
 
-function updateLoginMode() {
+async function updateLoginMode() {
   const member = select.value;
   loginError.textContent = ""; passwordInput.value = ""; passwordConfirm.value = "";
   passwordFields.classList.toggle("hidden", !member);
@@ -94,25 +88,57 @@ function updateLoginMode() {
     loginButton.firstChild.textContent = "이름을 먼저 선택합니다 ";
     return;
   }
-  const returning = hasPassword(member);
+  let returning = false;
+  try { returning = await hasPassword(member); }
+  catch (error) { loginError.textContent = "데이터베이스 설정이 필요합니다."; return; }
   passwordTitle.textContent = returning ? "비밀번호 입력" : "첫 비밀번호 설정";
-  passwordGuide.textContent = returning ? "처음 설정한 비밀번호를 입력합니다." : "4자 이상으로 설정합니다.";
+  passwordGuide.textContent = returning ? "처음 설정한 비밀번호를 입력합니다." : "6자 이상으로 설정합니다.";
   confirmField.classList.toggle("hidden", returning);
   passwordInput.autocomplete = returning ? "current-password" : "new-password";
   loginButton.firstChild.textContent = returning ? "로그인하기 " : "비밀번호 만들고 입장하기 ";
   setTimeout(() => passwordInput.focus(), 0);
 }
-function loadPhotos() {
-  state.photos = {}; state.completedAt = {};
-  if (!state.member) return;
-  missionSets[state.member].forEach((_, index) => {
-    const photo = localStorage.getItem(photoKey(state.member, index));
-    if (photo) {
-      state.photos[index] = photo;
-      const completed = localStorage.getItem(completedKey(state.member, index));
-      if (completed) state.completedAt[index] = completed;
-    }
-  });
+async function loadPhotos() {
+  state.photos = {}; state.photoPaths = {}; state.completedAt = {};
+  if (!state.user) return;
+  const { data, error } = await db.from("mission_photos").select("mission_index,storage_path,completed_at").eq("user_id",state.user.id);
+  if (error) throw error;
+  for (const row of data) {
+    const { data:signed } = await db.storage.from("mission-photos").createSignedUrl(row.storage_path,3600);
+    state.photos[row.mission_index] = signed?.signedUrl || "";
+    state.photoPaths[row.mission_index] = row.storage_path;
+    state.completedAt[row.mission_index] = row.completed_at;
+  }
+}
+
+function subscribeToSettings() {
+  if (settingsChannel) db.removeChannel(settingsChannel);
+  settingsChannel = db.channel("shared-app-settings")
+    .on("postgres_changes", { event:"UPDATE", schema:"public", table:"app_settings", filter:"id=eq.1" }, async payload => {
+      state.settings = payload.new;
+      if (quizResultsAreOpen()) {
+        const { data } = await db.from("quiz_results").select("user_id,answers,score,total,submitted_at,profiles(name)");
+        (data || []).forEach(row => { if (row.profiles?.name) state.quizResults[row.profiles.name] = { answers:row.answers, correct:row.score, total:row.total, submittedAt:row.submitted_at }; });
+      }
+      const active = document.querySelector(".view.active")?.id || "dashboardView";
+      showView(active);
+    }).subscribe();
+}
+
+async function loadOnlineState() {
+  const [{ data:profile, error:profileError },{ data:settings, error:settingsError },{ data:progress },{ data:results }] = await Promise.all([
+    db.from("profiles").select("id,name,role,missions_received").eq("id",state.user.id).single(),
+    db.from("app_settings").select("*").eq("id",1).single(),
+    db.rpc("group_progress"),
+    db.from("quiz_results").select("user_id,answers,score,total,submitted_at,profiles(name)")
+  ]);
+  if (profileError) throw profileError;
+  if (settingsError) throw settingsError;
+  state.profile=profile; state.member=profile.name; state.settings=settings;
+  state.groupProgress=Object.fromEntries((progress||[]).map(row=>[row.name,Number(row.completed_count)]));
+  state.quizResults={};
+  (results||[]).forEach(row=>{ if(row.profiles?.name) state.quizResults[row.profiles.name]={answers:row.answers,correct:row.score,total:row.total,submittedAt:row.submitted_at}; });
+  await loadPhotos();
 }
 
 function formatCompletedAt(value) {
@@ -161,7 +187,7 @@ function renderDashboard() {
   quizEntry.setAttribute("aria-disabled", String(!quizAvailable));
   document.getElementById("quizEntryCopy").textContent = quizOpen ? "나를 설명한 사람이 누구인지 맞힙니다" : quizResultsAreOpen() ? "전체 채점 결과를 확인합니다" : "관리자가 공개하면 확인할 수 있습니다";
   document.getElementById("memberProgressList").innerHTML = members.map(member => {
-    const count = missionSets[member].reduce((total, _, index) => total + (localStorage.getItem(photoKey(member, index)) ? 1 : 0), 0);
+    const count = member === state.member ? complete : (state.groupProgress[member] || 0);
     return `<div class="member-progress-row ${member === state.member ? "mine" : ""}">
       <span class="member-name">${member}${member === state.member ? " · 나" : ""}</span>
       <div class="member-mini-track" aria-label="${member} 미션 ${count}개 완료"><span style="width:${count * 20}%"></span></div>
@@ -294,8 +320,10 @@ document.getElementById("receiveMissionsButton").addEventListener("click", () =>
   button.disabled = true;
   receive.classList.add("hidden");
   drawing.classList.remove("hidden");
-  window.setTimeout(() => {
-    localStorage.setItem(receivedKey(state.member), "true");
+  window.setTimeout(async () => {
+    const { error } = await db.from("profiles").update({ missions_received:true }).eq("id", state.user.id);
+    if (error) { button.disabled = false; receive.classList.remove("hidden"); drawing.classList.add("hidden"); notify("미션을 불러오지 못했습니다."); return; }
+    state.profile.missions_received = true;
     button.disabled = false;
     renderMissions();
     notify("비밀 미션 5개가 도착했습니다.");
@@ -346,28 +374,34 @@ document.getElementById("loginForm").addEventListener("submit", async event => {
   const password = passwordInput.value;
   loginError.textContent = "";
   if (!member) return;
-  if (password.length < 4) {
-    loginError.textContent = "비밀번호는 4자 이상 입력해야 합니다."; passwordInput.focus(); return;
+  if (password.length < 6) {
+    loginError.textContent = "비밀번호는 6자 이상 입력해야 합니다."; passwordInput.focus(); return;
   }
   loginButton.disabled = true;
-  const hashed = await hashPassword(member, password);
-  if (hasPassword(member)) {
-    if (localStorage.getItem(passwordKey(member)) !== hashed) {
-      loginError.textContent = "비밀번호가 일치하지 않습니다. 다시 확인합니다.";
-      passwordInput.select(); loginButton.disabled = false; return;
-    }
-  } else {
+  try {
+    const returning = await hasPassword(member);
+    let authResult;
+    if (returning) {
+      authResult = await db.auth.signInWithPassword({ email:memberEmails[member], password });
+    } else {
     if (password !== passwordConfirm.value) {
       loginError.textContent = "두 비밀번호가 서로 일치하지 않습니다.";
       passwordConfirm.focus(); loginButton.disabled = false; return;
     }
-    localStorage.setItem(passwordKey(member), hashed);
-    notify(`${member}님의 비밀번호가 설정되었습니다.`);
-  }
-  state.member = member;
-  localStorage.setItem("jeju-member", state.member);
-  passwordInput.value = ""; passwordConfirm.value = "";
-  loadPhotos(); showView("dashboardView"); loginButton.disabled = false;
+      authResult = await db.auth.signUp({ email:memberEmails[member], password, options:{ data:{ display_name:member } } });
+    }
+    if (authResult.error) throw authResult.error;
+    if (!authResult.data.session) throw new Error("이메일 확인 설정을 해제해야 합니다.");
+    state.user = authResult.data.user;
+    await loadOnlineState();
+    subscribeToSettings();
+    passwordInput.value = ""; passwordConfirm.value = "";
+    showView("dashboardView");
+    if (!returning) notify(`${member}님의 비밀번호가 설정되었습니다.`);
+  } catch (error) {
+    loginError.textContent = error.message.includes("Invalid login") ? "비밀번호가 일치하지 않습니다." : `로그인하지 못했습니다. ${error.message}`;
+    passwordInput.select();
+  } finally { loginButton.disabled = false; }
 });
 
 document.getElementById("adminPasswordForm").addEventListener("submit", async event => {
@@ -379,65 +413,77 @@ document.getElementById("adminPasswordForm").addEventListener("submit", async ev
   const error = document.getElementById("adminError");
   error.textContent = "";
   if (!targetMember) { error.textContent = "비밀번호를 변경할 멤버를 선택해야 합니다."; return; }
-  if (newPassword.value.length < 4) { error.textContent = "새 비밀번호는 4자 이상 입력해야 합니다."; newPassword.focus(); return; }
+  if (newPassword.value.length < 6) { error.textContent = "새 비밀번호는 6자 이상 입력해야 합니다."; newPassword.focus(); return; }
   if (newPassword.value !== confirmation.value) { error.textContent = "두 비밀번호가 서로 일치하지 않습니다."; confirmation.focus(); return; }
-  const hashed = await hashPassword(targetMember, newPassword.value);
-  localStorage.setItem(passwordKey(targetMember), hashed);
+  const { data:{ session } } = await db.auth.getSession();
+  const response = await fetch(`${window.SUPABASE_CONFIG.url}/functions/v1/admin-password-reset`, { method:"POST", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${session.access_token}` }, body:JSON.stringify({ member:targetMember, password:newPassword.value }) });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) { error.textContent = payload.error || "비밀번호 변경 서버 함수 설정이 필요합니다."; return; }
   newPassword.value = ""; confirmation.value = ""; adminMemberSelect.value = "";
   notify(`${targetMember}님의 비밀번호가 변경되었습니다.`);
 });
 
-document.getElementById("openMissionsButton").addEventListener("click", () => {
+document.getElementById("openMissionsButton").addEventListener("click", async () => {
   if (state.member !== "최민규") return;
   const open = missionsAreOpen();
   const question = open
     ? "모든 멤버의 비밀 미션과 사진첩 접근을 다시 차단하시겠습니까?"
     : "모든 멤버에게 비밀 미션과 사진첩을 공개하시겠습니까?";
   if (!confirm(question)) return;
-  localStorage.setItem("jeju-missions-open", String(!open));
+  const { error } = await db.from("app_settings").update({ missions_open:!open, updated_at:new Date().toISOString() }).eq("id",1);
+  if (error) { notify("공개 상태를 변경하지 못했습니다."); return; }
+  state.settings.missions_open = !open;
   renderAdmin();
   notify(open ? "비밀 미션과 사진첩이 다시 비공개되었습니다." : "모든 멤버에게 비밀 미션과 사진첩이 공개되었습니다.");
 });
 
-document.getElementById("openQuizButton").addEventListener("click", () => {
+document.getElementById("openQuizButton").addEventListener("click", async () => {
   if (state.member !== "최민규") return;
   const open = quizIsOpen();
   const question = open
     ? "모든 멤버의 작성자 맞히기 접근을 다시 차단하시겠습니까?"
     : "모든 멤버에게 작성자 맞히기를 공개하시겠습니까?";
   if (!confirm(question)) return;
-  localStorage.setItem("jeju-quiz-open", String(!open));
+  const { error } = await db.from("app_settings").update({ quiz_open:!open, updated_at:new Date().toISOString() }).eq("id",1);
+  if (error) { notify("공개 상태를 변경하지 못했습니다."); return; }
+  state.settings.quiz_open = !open;
   renderAdmin();
   notify(open ? "작성자 맞히기가 다시 비공개되었습니다." : "작성자 맞히기가 공개되었습니다.");
 });
 
-document.getElementById("openQuizResultsButton").addEventListener("click", () => {
+document.getElementById("openQuizResultsButton").addEventListener("click", async () => {
   if (state.member !== "최민규") return;
   const open = quizResultsAreOpen();
   const question = open
     ? "모든 멤버의 전체 채점 결과를 다시 비공개하시겠습니까?"
     : "모든 멤버에게 전체 채점 결과를 공개하시겠습니까?";
   if (!confirm(question)) return;
-  localStorage.setItem("jeju-quiz-results-open", String(!open));
+  const { error } = await db.from("app_settings").update({ quiz_results_open:!open, updated_at:new Date().toISOString() }).eq("id",1);
+  if (error) { notify("공개 상태를 변경하지 못했습니다."); return; }
+  state.settings.quiz_results_open = !open;
   renderAdmin();
   notify(open ? "전체 채점 결과가 다시 비공개되었습니다." : "전체 채점 결과가 공개되었습니다.");
 });
 
-document.addEventListener("click", event => {
+document.addEventListener("click", async event => {
   const nav = event.target.closest("[data-target]");
   if (nav) showView(nav.dataset.target);
   const remove = event.target.closest("[data-remove]");
   if (remove && confirm("사진을 삭제하시겠습니까?")) {
     const index = remove.dataset.remove;
-    localStorage.removeItem(photoKey(state.member, index)); localStorage.removeItem(completedKey(state.member, index));
-    delete state.photos[index]; delete state.completedAt[index];
+    const path = state.photoPaths[index];
+    if (path) await db.storage.from("mission-photos").remove([path]);
+    const { error } = await db.from("mission_photos").delete().eq("user_id",state.user.id).eq("mission_index",Number(index));
+    if (error) { notify("사진을 삭제하지 못했습니다."); return; }
+    delete state.photos[index]; delete state.photoPaths[index]; delete state.completedAt[index];
+    state.groupProgress[state.member] = Object.keys(state.photos).length;
     renderMissions(); notify("사진이 삭제되었습니다.");
   }
   const resultButton = event.target.closest("[data-result-subject]");
   if (resultButton) { resultSubject = resultButton.dataset.resultSubject; renderGroupQuizResults(); }
 });
 
-document.getElementById("quizForm").addEventListener("submit", event => {
+document.getElementById("quizForm").addEventListener("submit", async event => {
   event.preventDefault();
   if (savedQuizResult(quizSubject)) { notify("이미 제출한 답안은 변경할 수 없습니다."); return; }
   const answers = [...document.querySelectorAll("[data-answer-index]")];
@@ -455,7 +501,10 @@ document.getElementById("quizForm").addEventListener("submit", event => {
     selectElement.disabled = true;
     if (isCorrect) correct += 1;
   });
-  localStorage.setItem(quizResultKey(quizSubject), JSON.stringify({ answers:submittedAnswers, correct, total:answers.length, submittedAt:new Date().toISOString() }));
+  const submittedAt = new Date().toISOString();
+  const { error } = await db.from("quiz_results").insert({ user_id:state.user.id, answers:submittedAnswers, score:correct, total:answers.length, submitted_at:submittedAt });
+  if (error) { notify(error.code === "23505" ? "이미 답안을 제출했습니다." : "답안을 저장하지 못했습니다."); renderQuiz(); return; }
+  state.quizResults[quizSubject] = { answers:submittedAnswers, correct, total:answers.length, submittedAt };
   const result = document.getElementById("quizResult");
   result.innerHTML = `<strong>${correct} / ${answers.length}</strong>총 ${answers.length}문제 중 ${correct}개를 맞혔습니다. 제출이 완료되어 답안을 변경할 수 없습니다.`;
   result.classList.remove("hidden");
@@ -471,17 +520,38 @@ document.addEventListener("change", async event => {
   try {
     const data = await compressImage(input.files[0]);
     const completed = new Date().toISOString();
-    localStorage.setItem(photoKey(state.member, input.dataset.upload), data);
-    localStorage.setItem(completedKey(state.member, input.dataset.upload), completed);
+    const blob = await (await fetch(data)).blob();
+    const path = `${state.user.id}/mission-${input.dataset.upload}.jpg`;
+    const { error:uploadError } = await db.storage.from("mission-photos").upload(path, blob, { upsert:true, contentType:"image/jpeg" });
+    if (uploadError) throw uploadError;
+    const { error:rowError } = await db.from("mission_photos").upsert({ user_id:state.user.id, mission_index:Number(input.dataset.upload), storage_path:path, completed_at:completed }, { onConflict:"user_id,mission_index" });
+    if (rowError) throw rowError;
     state.photos[input.dataset.upload] = data;
+    state.photoPaths[input.dataset.upload] = path;
     state.completedAt[input.dataset.upload] = completed;
+    state.groupProgress[state.member] = Object.keys(state.photos).length;
     renderMissions(); notify("미션이 완료되었습니다. 사진이 저장되었습니다.");
   } catch (error) { notify("사진을 저장하지 못했습니다. 다시 시도합니다."); }
 });
 
 document.getElementById("homeButton").addEventListener("click", () => showView("dashboardView"));
-document.getElementById("logoutButton").addEventListener("click", () => {
-  state.member = ""; state.photos = {}; localStorage.removeItem("jeju-member"); select.value = ""; updateLoginMode(); showView("loginView");
+document.getElementById("logoutButton").addEventListener("click", async () => {
+  if (settingsChannel) { await db.removeChannel(settingsChannel); settingsChannel = null; }
+  await db.auth.signOut();
+  state.member = ""; state.user = null; state.profile = null; state.photos = {}; state.photoPaths = {}; state.completedAt = {}; select.value = ""; updateLoginMode(); showView("loginView");
 });
 
-if (state.member && members.includes(state.member) && hasPassword(state.member)) { loadPhotos(); showView("dashboardView"); }
+(async function initialize() {
+  const { data:{ session } } = await db.auth.getSession();
+  if (!session) { showView("loginView"); return; }
+  try {
+    state.user = session.user;
+    await loadOnlineState();
+    subscribeToSettings();
+    showView("dashboardView");
+  } catch (error) {
+    await db.auth.signOut();
+    loginError.textContent = "데이터베이스 초기 설정이 필요합니다.";
+    showView("loginView");
+  }
+})();

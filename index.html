@@ -39,10 +39,10 @@
               <span id="passwordGuide">처음 사용할 비밀번호를 설정합니다.</span>
             </div>
             <label class="sr-only" for="passwordInput">비밀번호</label>
-            <input class="password-input" id="passwordInput" type="password" minlength="4" maxlength="30" autocomplete="current-password" placeholder="비밀번호 (4자 이상)">
+            <input class="password-input" id="passwordInput" type="password" minlength="6" maxlength="30" autocomplete="current-password" placeholder="비밀번호 (6자 이상)">
             <div id="confirmField">
               <label class="sr-only" for="passwordConfirm">비밀번호 확인</label>
-              <input class="password-input" id="passwordConfirm" type="password" minlength="4" maxlength="30" autocomplete="new-password" placeholder="비밀번호 한 번 더 입력">
+              <input class="password-input" id="passwordConfirm" type="password" minlength="6" maxlength="30" autocomplete="new-password" placeholder="비밀번호 한 번 더 입력">
             </div>
             <p class="form-error" id="loginError" role="alert"></p>
           </div>
@@ -141,9 +141,9 @@
             </select>
           </div>
           <label for="adminNewPassword">새 비밀번호</label>
-          <input class="password-input" id="adminNewPassword" type="password" minlength="4" maxlength="30" autocomplete="new-password" placeholder="새 비밀번호 (4자 이상)" required>
+          <input class="password-input" id="adminNewPassword" type="password" minlength="6" maxlength="30" autocomplete="new-password" placeholder="새 비밀번호 (6자 이상)" required>
           <label for="adminPasswordConfirm">새 비밀번호 확인</label>
-          <input class="password-input" id="adminPasswordConfirm" type="password" minlength="4" maxlength="30" autocomplete="new-password" placeholder="새 비밀번호 한 번 더 입력" required>
+          <input class="password-input" id="adminPasswordConfirm" type="password" minlength="6" maxlength="30" autocomplete="new-password" placeholder="새 비밀번호 한 번 더 입력" required>
           <p class="form-error" id="adminError" role="alert"></p>
           <button class="primary-button" type="submit">비밀번호 변경 <span>→</span></button>
         </form>
@@ -206,6 +206,8 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

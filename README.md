@@ -1,14 +1,29 @@
-# JEJA travel photo mission
+# 우리들의 여행을 몰래 기록하기
 
-7명이 함께 쓰는 모바일 중심 국내 당일치기 포토 미션 웹사이트입니다. DB 비밀번호는 [C___________512!] 입니다.
+7명이 함께 쓰는 모바일 중심 포토 미션 웹사이트입니다. GitHub Pages에서 화면을 제공하고 Supabase에서 로그인, 공용 데이터와 사진을 관리합니다.
 
-## 실행
+## Supabase 최초 설정
 
-`index.html`을 브라우저로 열거나, 이 폴더에서 정적 웹 서버를 실행하세요.
+1. Supabase 대시보드의 SQL Editor에서 `supabase-schema.sql` 전체를 실행합니다.
+2. Authentication → Providers → Email에서 **Confirm email**을 끕니다.
+3. Authentication → URL Configuration의 Site URL을 GitHub Pages 주소로 지정합니다.
+4. 관리자 비밀번호 변경 기능이 필요하면 Supabase CLI로 아래 함수를 배포합니다.
 
-처음 이름을 선택하면 개인 비밀번호를 설정하며, 이후 같은 기기에서는 해당 비밀번호로 로그인합니다. 비밀번호는 원문이 아닌 SHA-256 해시로 변환해 저장합니다.
+```powershell
+supabase login
+supabase link --project-ref cqpctyncvzlzsyamrxjp
+supabase functions deploy admin-password-reset
+```
 
-사진과 로그인 정보는 브라우저의 로컬 저장소에 보관됩니다. 따라서 다른 기기와 자동 공유되거나 복구되지는 않습니다.
+`service_role` 키와 데이터베이스 비밀번호는 HTML, JavaScript, GitHub 저장소에 절대 넣지 않습니다. `supabase-config.js`의 publishable key는 브라우저 공개용 키입니다.
+
+## 실행 및 배포
+
+`index.html`을 정적 서버로 열어 확인합니다. 변경 사항은 GitHub의 `main` 브랜치에 push하면 GitHub Pages에 반영됩니다.
+
+처음 이름을 선택하면 개인 비밀번호를 설정하며, 이후 어느 기기에서든 같은 이름과 비밀번호로 로그인합니다. 비밀번호는 Supabase Auth가 안전하게 관리합니다.
+
+사진과 로그인 정보는 Supabase에 보관되어 모든 기기에서 진행도와 공개 상태가 공유됩니다.
 미션 사진을 첨부한 시각도 함께 기록되어 미션 카드와 사진첩에 표시됩니다.
 최민규 계정에는 관리자 메뉴가 표시되며, 관리자 페이지에서 각 멤버의 비밀번호를 변경할 수 있습니다.
 비밀 미션과 사진첩은 처음에 잠겨 있으며, 최민규 관리자가 전체 공개 또는 다시 비공개로 전환할 수 있습니다.
