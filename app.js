@@ -26,7 +26,7 @@ members.forEach(subject => {
 });
 
 const db = window.supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
-const memberEmails = { "서성준":"seongjun@jeja.local", "최민규":"mingyu@jeja.local", "한은혜":"eunhye@jeja.local", "이다경":"dagyeong@jeja.local", "김학진":"hakjin@jeja.local", "은태경":"taegyeong@jeja.local", "이은비":"eunbi@jeja.local" };
+const memberEmails = { "서성준":"seongjun@jeja-travel.com", "최민규":"minkyu@jeja-travel.com", "한은혜":"eunhye@jeja-travel.com", "이다경":"dagyeong@jeja-travel.com", "김학진":"hakjin@jeja-travel.com", "은태경":"taegyeong@jeja-travel.com", "이은비":"eunbi@jeja-travel.com" };
 const state = { member:"", user:null, profile:null, photos:{}, photoPaths:{}, completedAt:{}, settings:{missions_open:false,quiz_open:false,quiz_results_open:false}, groupProgress:{}, quizResults:{} };
 const views = [...document.querySelectorAll(".view")];
 const topbar = document.getElementById("topbar");
