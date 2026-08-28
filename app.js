@@ -356,9 +356,24 @@ async function renderGallery() {
     const { data:signed } = await db.storage.from("mission-photos").createSignedUrl(row.storage_path,3600);
     return { ...row, name:row.profiles?.name, photo:signed?.signedUrl || "" };
   }));
-  empty.classList.toggle("hidden", entries.length > 0);
-  grid.classList.toggle("hidden", entries.length === 0);
-  grid.innerHTML = entries.map(entry => `<article class="gallery-item"><img src="${entry.photo}" alt="${entry.name || "멤버"}의 미션 사진"><div class="gallery-caption"><strong>${entry.name || "멤버"}</strong><p>${missionSets[entry.name]?.[Number(entry.mission_index)] || "미션 사진"}</p><time>${formatCompletedAt(entry.completed_at)}</time></div></article>`).join("");
+  const byMember = Object.fromEntries(members.map(name => [name, {}]));
+  entries.forEach(entry => { if (byMember[entry.name]) byMember[entry.name][Number(entry.mission_index)] = entry; });
+  empty.classList.add("hidden");
+  grid.classList.remove("hidden");
+  grid.innerHTML = members.map(name => {
+    const completed = Object.keys(byMember[name]).length;
+    const missions = missionSets[name].map((mission, index) => {
+      const entry = byMember[name][index];
+      return `<article class="gallery-mission ${entry ? "complete" : "pending"}">
+        <div class="gallery-mission-copy"><span>${String(index + 1).padStart(2,"0")}</span><div><h4>${mission}</h4><small>${entry ? `완료 · ${formatCompletedAt(entry.completed_at)}` : "아직 사진이 등록되지 않았습니다."}</small></div></div>
+        ${entry ? `<img src="${entry.photo}" alt="${name}의 ${index + 1}번 미션 사진">` : `<div class="gallery-photo-placeholder"><span>PHOTO</span></div>`}
+      </article>`;
+    }).join("");
+    return `<section class="member-gallery">
+      <div class="member-gallery-head"><div><span>MEMBER</span><h3>${name}</h3></div><strong>${completed} / 5 완료</strong></div>
+      <div class="member-gallery-missions">${missions}</div>
+    </section>`;
+  }).join("");
 }
 
 function compressImage(file) {
