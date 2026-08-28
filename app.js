@@ -385,7 +385,7 @@ async function renderGallery() {
   }));
   state.galleryEntries = entries;
   const { data:likes, error:likesError } = await db.from("photo_likes").select("photo_id,user_id");
-  if (likesError) { notify("하트 정보를 불러오지 못했습니다."); state.galleryLikes = []; }
+  if (likesError) { notify(`하트 정보를 불러오지 못했습니다: ${likesError.message}`); state.galleryLikes = []; }
   else state.galleryLikes = likes || [];
   state.likedPhotoIds = new Set(state.galleryLikes.filter(like => like.user_id === state.user.id).map(like => Number(like.photo_id)));
   renderGalleryPerson();

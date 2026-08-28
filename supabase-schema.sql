@@ -115,6 +115,7 @@ create policy photo_likes_insert on public.photo_likes for insert to authenticat
 with check(user_id=auth.uid() and (select gallery_open from public.app_settings where id=1));
 drop policy if exists photo_likes_delete on public.photo_likes;
 create policy photo_likes_delete on public.photo_likes for delete to authenticated using(user_id=auth.uid());
+grant select, insert, delete on public.photo_likes to authenticated;
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values('mission-photos','mission-photos',false,5242880,array['image/jpeg','image/png','image/webp'])
 on conflict(id) do update set public=false,file_size_limit=5242880,allowed_mime_types=array['image/jpeg','image/png','image/webp'];
