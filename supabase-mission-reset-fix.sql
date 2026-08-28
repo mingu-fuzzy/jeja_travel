@@ -9,7 +9,8 @@ begin
   end if;
 
   update public.profiles
-  set missions_received = false;
+  set missions_received = false
+  where missions_received is distinct from false;
 end;
 $$;
 

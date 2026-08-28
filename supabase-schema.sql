@@ -78,7 +78,9 @@ begin
   if not public.is_admin() then
     raise exception '관리자만 미션 수령 상태를 초기화할 수 있습니다.';
   end if;
-  update public.profiles set missions_received=false;
+  update public.profiles
+  set missions_received=false
+  where missions_received is distinct from false;
 end; $$;
 alter table public.profiles enable row level security;
 alter table public.app_settings enable row level security;
